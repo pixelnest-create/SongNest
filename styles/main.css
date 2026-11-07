@@ -15,6 +15,7 @@
   --on-accent: #2E1D0C;
   --accent-text: #A85A15;
   --danger: #B3452F;
+  --track: #E0CFB8; /* 进度条未播放部分 */
 
   /* 无封面歌曲的占位底色 */
   --cover-1: #F6D9B8;
@@ -31,7 +32,7 @@
   --font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
 
   --gutter: 16px;
-  --dock-height: 132px; /* 播放条 + 标签栏的大致高度，用来给内容留出底部空间 */
+  --dock-height: 160px; /* 播放条 + 标签栏的大致高度，用来给内容留出底部空间 */
 
   color-scheme: light dark;
 }
@@ -46,6 +47,7 @@
     --text-2: #A8998A;
     --accent-text: #F0A75C;
     --danger: #E07A62;
+    --track: #4A3F36;
     --cover-1: #5A4330;
     --cover-2: #4D3E38;
     --cover-3: #3E4A38;
@@ -246,19 +248,65 @@ button {
 }
 
 .player-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   max-width: 616px;
   margin: 0 auto;
-  padding: 6px 4px 6px 8px;
+  padding: 6px 4px 2px 8px;
   background: var(--card-2);
   border-radius: var(--radius-bar);
 }
+.pb-main { display: flex; align-items: center; gap: 8px; }
 .player-bar .row-text { font-size: 15px; }
 .player-bar .icon-btn { color: var(--accent-text); }
+.player-bar .icon-btn:disabled { color: var(--text-2); opacity: 0.5; cursor: default; }
 .player-bar.is-idle .row-title { color: var(--text-2); }
-.player-bar.is-idle .icon-btn { color: var(--text-2); opacity: 0.5; }
+
+.pb-progress {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding-right: 4px;
+}
+.pb-time {
+  min-width: 36px;
+  font-size: 11px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.pb-time:last-child { text-align: right; }
+
+/* 进度条：用 --p 变量画出「已播放」的橙色部分 */
+.seek {
+  --p: 0%;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 28px; /* 视觉上只有 4px 粗，但手指容易按到 */
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.seek:disabled { cursor: default; opacity: 0.5; }
+.seek::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--accent) var(--p), var(--track) var(--p));
+}
+.seek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.seek::-moz-range-track { height: 4px; border-radius: 2px; background: var(--track); }
+.seek::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent); }
+.seek::-moz-range-thumb { width: 14px; height: 14px; border: 0; border-radius: 50%; background: var(--accent); }
+
+/* 列表中正在播放的歌 */
+.row-main.is-current .row-title { color: var(--accent-text); font-weight: 600; }
 
 .tab-bar {
   display: grid;

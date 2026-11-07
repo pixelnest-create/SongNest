@@ -1,7 +1,9 @@
 // 应用入口：渲染底部固定区域，启动路由
 import { startRouter } from './router.js';
 import { icon } from './icons.js';
-import { coverHTML, notYet, toast } from './ui.js';
+import { toast } from './ui.js';
+import { mountPlayerBar } from './player-bar.js';
+import { getState } from './player.js';
 import { renderLibrary } from './views/library.js';
 import { renderPlaylists } from './views/playlists.js';
 import { renderPlaylistDetail } from './views/playlist-detail.js';
@@ -25,20 +27,22 @@ function setActiveTab(name) {
   }
 }
 
-// ---------- 播放条（阶段 4 之前只是静态展示） ----------
-function renderPlayerBar() {
-  const bar = document.getElementById('player-bar');
-  bar.classList.add('is-idle');
-  bar.innerHTML = `
-    ${coverHTML('idle', { small: true })}
-    <span class="row-text"><span class="row-title">未在播放</span></span>
-    <button class="icon-btn" data-action="toggle" aria-label="播放">${icon('play')}</button>
-    <button class="icon-btn" data-action="next" aria-label="下一首">${icon('next')}</button>
-  `;
-  bar.onclick = (e) => {
-    if (e.target.closest('[data-action]')) notYet(4);
-  };
+// ---------- 播放状态 ----------
+mountPlayerBar(document.getElementById('player-bar'));
+
+/** 在当前页面的列表里高亮正在播放的歌 */
+function markCurrent() {
+  const id = getState().song?.id;
+  for (const el of view.querySelectorAll('[data-action="play"][data-id]')) {
+    el.classList.toggle('is-current', el.dataset.id === id);
+  }
 }
+window.addEventListener('player:change', markCurrent);
+
+window.addEventListener('player:error', (e) => {
+  const title = e.detail.song?.title;
+  toast(title ? `无法播放「${title}」` : '无法播放这首歌', { duration: 4000 });
+});
 
 // ---------- 路由 ----------
 let renderCount = 0;
@@ -69,11 +73,11 @@ function page(tab, render) {
 
     view.replaceChildren(...next.childNodes);
     view.onclick = next.onclick; // 页面的点击处理挂在容器上，一起搬过来
+    markCurrent();
     if (!scroll) window.scrollTo(0, 0);
   };
 }
 
-renderPlayerBar();
 const router = startRouter(
   {
     '/library': page('library', renderLibrary),

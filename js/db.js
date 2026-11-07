@@ -81,6 +81,16 @@ export async function addSong(song, audioBlob) {
   await finished(tx);
 }
 
+/** 修改一首歌的部分字段，例如补上时长：updateSong(id, { duration: 200 }) */
+export async function updateSong(id, patch) {
+  const db = await openDB();
+  const tx = db.transaction('songs', 'readwrite');
+  const store = tx.objectStore('songs');
+  const song = await result(store.get(id));
+  if (song) store.put({ ...song, ...patch });
+  await finished(tx);
+}
+
 /** 读取一首歌的音频文件（播放时用） */
 export async function getAudio(id) {
   const db = await openDB();

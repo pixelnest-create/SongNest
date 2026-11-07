@@ -3,6 +3,7 @@ import { icon } from '../icons.js';
 import { coverHTML, escapeHTML, formatDuration, notYet } from '../ui.js';
 import { getAllSongs } from '../db.js';
 import { pickAndImport } from '../importer.js';
+import { getState, playQueue, toggle } from '../player.js';
 
 export async function renderLibrary(container) {
   const songs = await getAllSongs();
@@ -21,7 +22,13 @@ export async function renderLibrary(container) {
     if (!target) return;
     switch (target.dataset.action) {
       case 'import': pickAndImport(); break;
-      case 'play': notYet(4); break;
+      case 'play': {
+        // 点的是正在播放的歌 → 暂停/继续；否则把整个歌曲库作为队列，从这首开始播
+        const id = target.dataset.id;
+        if (getState().song?.id === id) toggle();
+        else playQueue(songs, songs.findIndex((s) => s.id === id));
+        break;
+      }
       case 'more': notYet(5); break;
     }
   };
