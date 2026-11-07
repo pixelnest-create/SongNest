@@ -1,0 +1,5 @@
+# 统一使用 LF 换行，避免 Windows/macOS 之间出现无意义的差异
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
