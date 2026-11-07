@@ -1,6 +1,7 @@
 // 歌曲库页面：#/library
 import { icon } from '../icons.js';
-import { coverHTML, escapeHTML, formatDuration, notYet } from '../ui.js';
+import { coverHTML, escapeHTML, formatDuration } from '../ui.js';
+import { addToPlaylistFlow } from '../playlist-actions.js';
 import { getAllSongs } from '../db.js';
 import { pickAndImport } from '../importer.js';
 import { getState, playQueue, toggle } from '../player.js';
@@ -29,7 +30,11 @@ export async function renderLibrary(container) {
         else playQueue(songs, songs.findIndex((s) => s.id === id));
         break;
       }
-      case 'more': notYet(5); break;
+      case 'more': {
+        const song = songs.find((s) => s.id === target.dataset.id);
+        addToPlaylistFlow([song.id], song.title);
+        break;
+      }
     }
   };
 }

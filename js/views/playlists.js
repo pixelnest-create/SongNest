@@ -1,43 +1,52 @@
 // 歌单列表页面：#/playlists
 import { icon } from '../icons.js';
-import { coverHTML, escapeHTML, notYet } from '../ui.js';
-// 歌单数据在阶段 5 接入数据库，在那之前列表总是空的
-const getPlaylists = () => [];
+import { coverHTML, escapeHTML } from '../ui.js';
+import { getAllPlaylists, getAllSongs } from '../db.js';
+import { createPlaylistFlow } from '../playlist-actions.js';
 
-export function renderPlaylists(container) {
-  const playlists = getPlaylists();
+export async function renderPlaylists(container) {
+  const [playlists, songs] = await Promise.all([getAllPlaylists(), getAllSongs()]);
+  const songsById = new Map(songs.map((s) => [s.id, s]));
 
   container.innerHTML = `
     <header class="page-header">
       <h1 class="page-title">歌单</h1>
       <button class="btn btn-accent" data-action="create">${icon('plus')}新建</button>
     </header>
-    ${playlists.length ? listHTML(playlists) : emptyHTML()}
+    ${playlists.length ? listHTML(playlists, songsById) : emptyHTML()}
   `;
 
-  container.onclick = (e) => {
+  container.onclick = async (e) => {
     const target = e.target.closest('[data-action]');
-    if (target?.dataset.action === 'create') notYet(5);
+    if (target?.dataset.action === 'create') {
+      const playlist = await createPlaylistFlow();
+      if (playlist) location.hash = `#/playlist/${encodeURIComponent(playlist.id)}`; // 建好直接进去加歌
+    }
   };
 }
 
-function listHTML(playlists) {
+function listHTML(playlists, songsById) {
   return `
     <ul class="list">
-      ${playlists.map((p) => `
-        <li>
-          <a class="row" href="#/playlist/${encodeURIComponent(p.id)}">
-            <span class="row-main">
-              ${coverHTML(p.id)}
-              <span class="row-text">
-                <span class="row-title">${escapeHTML(p.name)}</span>
-                <span class="row-sub">${p.songIds.length} 首</span>
+      ${playlists.map((p) => {
+        // 歌单封面：用第一首有封面的歌
+        const songs = p.songIds.map((id) => songsById.get(id)).filter(Boolean);
+        const withCover = songs.find((s) => s.cover);
+        return `
+          <li>
+            <a class="row" href="#/playlist/${encodeURIComponent(p.id)}">
+              <span class="row-main">
+                ${coverHTML(p.id, { cover: withCover?.cover, coverSongId: withCover?.id })}
+                <span class="row-text">
+                  <span class="row-title">${escapeHTML(p.name)}</span>
+                  <span class="row-sub">${songs.length} 首</span>
+                </span>
               </span>
-            </span>
-            <span class="icon-btn" aria-hidden="true">${icon('chevron')}</span>
-          </a>
-        </li>
-      `).join('')}
+              <span class="icon-btn" aria-hidden="true">${icon('chevron')}</span>
+            </a>
+          </li>
+        `;
+      }).join('')}
     </ul>
   `;
 }

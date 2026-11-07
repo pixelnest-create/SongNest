@@ -97,3 +97,97 @@ export async function getAudio(id) {
   const row = await result(db.transaction('audio').objectStore('audio').get(id));
   return row?.blob ?? null;
 }
+
+/** 按 id 列表读取多首歌，保持列表顺序；已经不存在的歌会被跳过 */
+export async function getSongsByIds(ids) {
+  const db = await openDB();
+  const store = db.transaction('songs').objectStore('songs');
+  const songs = await Promise.all(ids.map((id) => result(store.get(id))));
+  return songs.filter(Boolean);
+}
+
+// ---------- 歌单 ----------
+// 每次修改歌单后都会发出 'library:change' 事件，让页面自动刷新。
+
+function notifyChange() {
+  window.dispatchEvent(new Event('library:change'));
+}
+
+/** 所有歌单，先建的在前 */
+export async function getAllPlaylists() {
+  const db = await openDB();
+  const list = await result(db.transaction('playlists').objectStore('playlists').getAll());
+  return list.sort((a, b) => a.createdAt - b.createdAt);
+}
+
+export async function getPlaylist(id) {
+  const db = await openDB();
+  return (await result(db.transaction('playlists').objectStore('playlists').get(id))) ?? null;
+}
+
+export async function createPlaylist(name) {
+  const now = Date.now();
+  const playlist = { id: newId(), name, songIds: [], createdAt: now, updatedAt: now };
+  const db = await openDB();
+  const tx = db.transaction('playlists', 'readwrite');
+  tx.objectStore('playlists').add(playlist);
+  await finished(tx);
+  notifyChange();
+  return playlist;
+}
+
+/**
+ * 修改歌单的通用函数：在同一个事务里「读出 → 修改 → 写回」，
+ * 避免两处同时修改时互相覆盖。change 函数接收旧歌单，返回新歌单。
+ */
+async function updatePlaylist(id, change) {
+  const db = await openDB();
+  const tx = db.transaction('playlists', 'readwrite');
+  const store = tx.objectStore('playlists');
+  const old = await result(store.get(id));
+  if (!old) throw new Error('歌单不存在');
+  const updated = { ...change(old), updatedAt: Date.now() };
+  store.put(updated);
+  await finished(tx);
+  notifyChange();
+  return updated;
+}
+
+export function renamePlaylist(id, name) {
+  return updatePlaylist(id, (p) => ({ ...p, name }));
+}
+
+/** 把歌加到歌单末尾，已经在歌单里的会跳过。返回实际新加了几首 */
+export async function addSongsToPlaylist(id, songIds) {
+  let added = 0;
+  await updatePlaylist(id, (p) => {
+    const existing = new Set(p.songIds);
+    const extra = [...new Set(songIds)].filter((s) => !existing.has(s));
+    added = extra.length;
+    return { ...p, songIds: [...p.songIds, ...extra] };
+  });
+  return added;
+}
+
+export function removeSongFromPlaylist(id, songId) {
+  return updatePlaylist(id, (p) => ({ ...p, songIds: p.songIds.filter((s) => s !== songId) }));
+}
+
+/** 把第 from 首移到第 to 的位置 */
+export function moveSongInPlaylist(id, from, to) {
+  return updatePlaylist(id, (p) => {
+    const ids = [...p.songIds];
+    const [moved] = ids.splice(from, 1);
+    ids.splice(to, 0, moved);
+    return { ...p, songIds: ids };
+  });
+}
+
+/** 删除歌单（歌曲本身不会被删除） */
+export async function deletePlaylist(id) {
+  const db = await openDB();
+  const tx = db.transaction('playlists', 'readwrite');
+  tx.objectStore('playlists').delete(id);
+  await finished(tx);
+  notifyChange();
+}

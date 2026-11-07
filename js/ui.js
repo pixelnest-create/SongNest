@@ -23,15 +23,20 @@ function toneFor(id) {
 }
 
 // 封面图片的临时网址（object URL）。每首歌只生成一次，反复渲染时复用。
+// 以「歌曲 id」为键，因为一首歌的封面不会变。
 const coverURLs = new Map();
 
-/** 封面：歌曲有封面图就显示图片，没有就显示带音符的色块 */
-export function coverHTML(id, { cover = null, small = false } = {}) {
+/**
+ * 封面：有封面图就显示图片，没有就显示带音符的色块。
+ * id 决定占位色块的颜色；coverSongId 是封面图来自哪首歌（默认就是 id）。
+ * 歌单用第一首有封面的歌做封面，所以两者会不同。
+ */
+export function coverHTML(id, { cover = null, coverSongId = id, small = false } = {}) {
   const cls = small ? 'cover sm' : 'cover';
   let inner = icon('music');
   if (cover instanceof Blob) {
-    if (!coverURLs.has(id)) coverURLs.set(id, URL.createObjectURL(cover));
-    inner = `<img src="${coverURLs.get(id)}" alt="">`;
+    if (!coverURLs.has(coverSongId)) coverURLs.set(coverSongId, URL.createObjectURL(cover));
+    inner = `<img src="${coverURLs.get(coverSongId)}" alt="">`;
   }
   return `<span class="${cls}" data-tone="${toneFor(id)}">${inner}</span>`;
 }
@@ -47,9 +52,4 @@ export function toast(message, { duration = 2500, sticky = false } = {}) {
   el.classList.add('is-visible');
   clearTimeout(toastTimer);
   if (!sticky) toastTimer = setTimeout(() => el.classList.remove('is-visible'), duration);
-}
-
-/** 还没做的按钮，先给个提示 */
-export function notYet(stage) {
-  toast(`这个功能会在阶段 ${stage} 实现`);
 }
