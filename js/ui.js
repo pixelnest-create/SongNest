@@ -8,7 +8,7 @@ export function escapeHTML(text) {
   }[c]));
 }
 
-/** 269.5 → "4:29" */
+/** 269.5 → "4:29"；没有时长时显示 "--:--" */
 export function formatDuration(seconds) {
   if (!Number.isFinite(seconds)) return '--:--';
   const s = Math.floor(seconds);
@@ -22,24 +22,34 @@ function toneFor(id) {
   return (hash % 3) + 1;
 }
 
-/** 封面：有图片就显示图片，没有就显示带音符的色块 */
-export function coverHTML(id, { coverURL = null, small = false } = {}) {
+// 封面图片的临时网址（object URL）。每首歌只生成一次，反复渲染时复用。
+const coverURLs = new Map();
+
+/** 封面：歌曲有封面图就显示图片，没有就显示带音符的色块 */
+export function coverHTML(id, { cover = null, small = false } = {}) {
   const cls = small ? 'cover sm' : 'cover';
-  const inner = coverURL ? `<img src="${escapeHTML(coverURL)}" alt="">` : icon('music');
+  let inner = icon('music');
+  if (cover instanceof Blob) {
+    if (!coverURLs.has(id)) coverURLs.set(id, URL.createObjectURL(cover));
+    inner = `<img src="${coverURLs.get(id)}" alt="">`;
+  }
   return `<span class="${cls}" data-tone="${toneFor(id)}">${inner}</span>`;
 }
 
 let toastTimer;
-/** 在屏幕下方弹出一条提示，2 秒后消失 */
-export function toast(message) {
+/**
+ * 在屏幕下方弹出一条提示。
+ * sticky: true 时一直显示，直到下一条提示替换它。
+ */
+export function toast(message, { duration = 2500, sticky = false } = {}) {
   const el = document.getElementById('toast');
   el.textContent = message;
   el.classList.add('is-visible');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('is-visible'), 2000);
+  if (!sticky) toastTimer = setTimeout(() => el.classList.remove('is-visible'), duration);
 }
 
-/** 阶段 2 里还没做的按钮，先给个提示 */
+/** 还没做的按钮，先给个提示 */
 export function notYet(stage) {
   toast(`这个功能会在阶段 ${stage} 实现`);
 }

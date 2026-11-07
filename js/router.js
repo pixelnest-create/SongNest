@@ -21,6 +21,9 @@ export function startRouter(routes, fallback) {
 
   window.addEventListener('hashchange', handle);
   handle();
+
+  // 返回 refresh：数据变化时用来重新渲染当前页面
+  return { refresh: handle };
 }
 
 /** 把 "/playlist/:id" 和 "/playlist/abc" 对比，成功返回参数对象，失败返回 null */

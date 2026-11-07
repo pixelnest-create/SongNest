@@ -1,7 +1,8 @@
 // 歌单列表页面：#/playlists
 import { icon } from '../icons.js';
 import { coverHTML, escapeHTML, notYet } from '../ui.js';
-import { getPlaylists } from '../demo-data.js';
+// 歌单数据在阶段 5 接入数据库，在那之前列表总是空的
+const getPlaylists = () => [];
 
 export function renderPlaylists(container) {
   const playlists = getPlaylists();

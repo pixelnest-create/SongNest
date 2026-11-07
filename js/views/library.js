@@ -1,10 +1,11 @@
 // 歌曲库页面：#/library
 import { icon } from '../icons.js';
 import { coverHTML, escapeHTML, formatDuration, notYet } from '../ui.js';
-import { getSongs } from '../demo-data.js';
+import { getAllSongs } from '../db.js';
+import { pickAndImport } from '../importer.js';
 
-export function renderLibrary(container) {
-  const songs = getSongs();
+export async function renderLibrary(container) {
+  const songs = await getAllSongs();
 
   container.innerHTML = `
     <header class="page-header">
@@ -19,7 +20,7 @@ export function renderLibrary(container) {
     const target = e.target.closest('[data-action]');
     if (!target) return;
     switch (target.dataset.action) {
-      case 'import': notYet(3); break;
+      case 'import': pickAndImport(); break;
       case 'play': notYet(4); break;
       case 'more': notYet(5); break;
     }
@@ -33,7 +34,7 @@ function listHTML(songs) {
       ${songs.map((song) => `
         <li class="row">
           <button class="row-main" data-action="play" data-id="${escapeHTML(song.id)}">
-            ${coverHTML(song.id)}
+            ${coverHTML(song.id, { cover: song.cover })}
             <span class="row-text">
               <span class="row-title">${escapeHTML(song.title)}</span>
               <span class="row-sub">${escapeHTML(song.artist ?? '未知歌手')}</span>

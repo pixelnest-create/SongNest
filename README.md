@@ -23,17 +23,23 @@ npm run dev
 - 电脑浏览器：`http://localhost:5173`
 - 手机（和电脑连同一个 Wi-Fi）：`http://<电脑局域网IP>:5173`，用 iPhone 的 Safari 打开
 
-地址后面加 `?demo`（如 `http://localhost:5173/?demo`）会显示演示歌曲和歌单，用来查看界面效果。
-
 第一次用手机访问时，如果 Windows 防火墙弹窗，要勾选「专用网络」并允许。
 Service Worker 需要 HTTPS，离线功能要等部署到 GitHub Pages 后才能在手机上测试。
+
+## 测试
+
+```bash
+npm test
+```
+
+运行 `tests/` 下的单元测试（目前测试元数据解析器）。
 
 ## 项目进度
 
 - [x] 阶段 0：环境准备
 - [x] 阶段 1：需求与设计（见 [docs/design.md](docs/design.md)）
 - [x] 阶段 2：项目骨架
-- [ ] 阶段 3：导入音乐
+- [x] 阶段 3：导入音乐
 - [ ] 阶段 4：歌曲库与播放
 - [ ] 阶段 5：歌单管理
 - [ ] 阶段 6：播放队列

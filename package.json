@@ -5,6 +5,7 @@
   "description": "可以安装到 iPhone 主屏幕的本地音乐歌单 PWA",
   "type": "module",
   "scripts": {
-    "dev": "node scripts/serve.mjs"
+    "dev": "node scripts/serve.mjs",
+    "test": "node --test \"tests/**/*.test.mjs\""
   }
 }

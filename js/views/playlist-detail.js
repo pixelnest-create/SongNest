@@ -1,7 +1,9 @@
 // 歌单详情页面：#/playlist/<id>
 import { icon } from '../icons.js';
 import { coverHTML, escapeHTML, formatDuration, notYet } from '../ui.js';
-import { getPlaylist, getSong } from '../demo-data.js';
+// 歌单数据在阶段 5 接入数据库，在那之前总是显示「找不到」
+const getPlaylist = () => null;
+const getSong = () => null;
 
 export function renderPlaylistDetail(container, { id }) {
   const playlist = getPlaylist(id);

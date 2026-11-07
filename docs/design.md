@@ -198,17 +198,23 @@ SongNest/
 │   ├── app.js               # 入口：初始化、路由
 │   ├── router.js            # hash 路由
 │   ├── db.js                # IndexedDB 封装（只有这个文件直接操作数据库）
-│   ├── importer.js          # 文件导入 + 元数据读取
+│   ├── importer.js          # 文件导入流程
+│   ├── metadata.js          # 从音频字节里读标题、歌手、封面、时长（纯函数）
+│   ├── ui.js                # 共用小工具：转义、时长格式、封面、提示条
+│   ├── icons.js             # SVG 图标
 │   ├── player.js            # 播放器和播放队列（只有这个文件操作 <audio>）
 │   ├── media-session.js     # 锁屏控制
 │   └── views/
 │       ├── library.js
 │       ├── playlists.js
 │       └── playlist-detail.js
-├── vendor/                  # 第三方库，下载到本地以便离线使用
+├── scripts/serve.mjs        # 本地预览服务器（npm run dev）
+├── tests/                   # 单元测试（npm test）
 └── docs/
     └── design.md
 ```
+
+目前没有任何第三方库。
 
 **分层原则**：界面（views）不直接操作数据库或 `<audio>`，统一通过 `db.js` 和 `player.js` 提供的函数来做。模块之间通过自定义事件通知变化（比如 `player:change`、`library:change`）。
 
@@ -224,10 +230,16 @@ SongNest/
 | 后台自动切下一首偶尔不稳定 | 阶段 7 在真机上测试，必要时用 Media Session 补救 |
 | 支持的格式 | 支持 mp3、m4a/aac、wav、flac；ogg 不保证，导入时提示不支持 |
 
-## 9. 待定事项
+## 9. 已决定的事项
 
-- **元数据读取库**（阶段 3 决定）：`jsmediatags`（体积小、能直接用，但已经不再维护）或者自己写一个只读取 ID3v2 和 MP4 标签的简化解析器（适合学习，但工作量更大）
-- **封面图片大小**：导入时是否压缩成缩略图，避免数据库占用太多空间
+- **元数据读取**（阶段 3）：自己写解析器 `js/metadata.js`，不用 `jsmediatags`。原因：
+  1. iOS 在用户没点播放时，往往不会加载音频信息，所以**时长**也必须从文件字节里直接算出来，而 `jsmediatags` 不提供时长
+  2. `jsmediatags` 已经不再维护
+  3. 不依赖第三方库，离线可用，代码也能完整读懂
+  
+  支持 MP3（ID3v2.2/2.3/2.4、ID3v1，包括 GBK 编码的中文标签）、M4A、FLAC、WAV。实在读不出时长时，退回让浏览器加载（最多等 5 秒），仍然失败就先留空。
+- **封面**（阶段 3）：导入时缩小到最长边 300px，转成 JPEG（质量 0.85），一张大约几 KB 到几十 KB
+- **重复导入**：文件名和大小都相同就跳过，并在提示里说明
 
 ## 10. 验收清单（阶段 9 真机测试用）
 
