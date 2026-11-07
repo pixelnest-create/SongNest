@@ -1,0 +1,10 @@
+{
+  "name": "songnest",
+  "version": "0.1.0",
+  "private": true,
+  "description": "可以安装到 iPhone 主屏幕的本地音乐歌单 PWA",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/serve.mjs"
+  }
+}

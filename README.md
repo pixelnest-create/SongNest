@@ -12,19 +12,27 @@
 
 ## 本地预览
 
-任选一种：
+在项目目录运行：
 
-- VS Code 安装 Live Server 插件，右键 `index.html` → Open with Live Server
-- 命令行：`npx serve .`
+```bash
+npm run dev
+```
 
-手机预览：电脑和手机连同一个 Wi-Fi，在 iPhone Safari 打开 `http://<电脑局域网IP>:<端口>`。
-（Service Worker 需要 HTTPS，要等部署到 GitHub Pages 后才能在手机上完整测试。）
+终端会打印两个地址：
+
+- 电脑浏览器：`http://localhost:5173`
+- 手机（和电脑连同一个 Wi-Fi）：`http://<电脑局域网IP>:5173`，用 iPhone 的 Safari 打开
+
+地址后面加 `?demo`（如 `http://localhost:5173/?demo`）会显示演示歌曲和歌单，用来查看界面效果。
+
+第一次用手机访问时，如果 Windows 防火墙弹窗，要勾选「专用网络」并允许。
+Service Worker 需要 HTTPS，离线功能要等部署到 GitHub Pages 后才能在手机上测试。
 
 ## 项目进度
 
 - [x] 阶段 0：环境准备
 - [x] 阶段 1：需求与设计（见 [docs/design.md](docs/design.md)）
-- [ ] 阶段 2：项目骨架
+- [x] 阶段 2：项目骨架
 - [ ] 阶段 3：导入音乐
 - [ ] 阶段 4：歌曲库与播放
 - [ ] 阶段 5：歌单管理

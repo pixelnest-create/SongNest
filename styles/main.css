@@ -1,0 +1,307 @@
+/* =========================================================
+   SongNest 样式 —— 风格「温暖柔和」
+   所有颜色、圆角都来自下面的变量，规则见 docs/design.md 第 4 节
+   ========================================================= */
+
+/* ---------- 1. 设计变量 ---------- */
+:root {
+  --bg: #FBF6EE;
+  --card: #FFFFFF;
+  --card-2: #F3E6D3;
+  --border: #EADFCF;
+  --text: #3B2F25;
+  --text-2: #7D6A58;
+  --accent: #E8913A;
+  --on-accent: #2E1D0C;
+  --accent-text: #A85A15;
+  --danger: #B3452F;
+
+  /* 无封面歌曲的占位底色 */
+  --cover-1: #F6D9B8;
+  --cover-2: #E6D3C6;
+  --cover-3: #D8E3CF;
+
+  --radius-card: 8px;
+  --radius-cover: 6px;
+  --radius-cover-sm: 4px;
+  --radius-control: 6px;
+  --radius-bar: 10px;
+  --radius-sheet: 12px;
+
+  --font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+
+  --gutter: 16px;
+  --dock-height: 132px; /* 播放条 + 标签栏的大致高度，用来给内容留出底部空间 */
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1F1A16;
+    --card: #2B241F;
+    --card-2: #352C25;
+    --border: #3A312A;
+    --text: #F3EAE0;
+    --text-2: #A8998A;
+    --accent-text: #F0A75C;
+    --danger: #E07A62;
+    --cover-1: #5A4330;
+    --cover-2: #4D3E38;
+    --cover-3: #3E4A38;
+  }
+}
+
+/* ---------- 2. 基础 ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { margin: 0; }
+
+body {
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent; /* 去掉 iOS 点击时的灰色闪烁 */
+  -webkit-text-size-adjust: 100%;
+}
+
+a { color: inherit; text-decoration: none; }
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.icon { width: 24px; height: 24px; flex: none; }
+
+/* ---------- 3. 页面容器 ---------- */
+.view {
+  padding: 0 var(--gutter) calc(var(--dock-height) + env(safe-area-inset-bottom) + 16px);
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: calc(env(safe-area-inset-top) + 16px);
+  padding-bottom: 12px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-subtitle {
+  margin: -8px 0 12px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+/* ---------- 4. 按钮 ---------- */
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--radius-control);
+  font-size: 15px;
+  white-space: nowrap;
+  transition: transform 120ms ease-out, background-color 120ms ease-out;
+}
+.btn .icon { width: 18px; height: 18px; }
+/* 把点击区域向外扩到 44px 高，但视觉上仍然是 36px */
+.btn::after { content: ""; position: absolute; inset: -4px; }
+.btn:active { transform: scale(0.98); }
+
+.btn-accent { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.btn-accent:active { filter: brightness(0.95); }
+
+.btn-soft { background: var(--card-2); color: var(--text); }
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-control);
+  color: var(--text-2);
+  flex: none;
+  transition: background-color 120ms ease-out;
+}
+.icon-btn:active { background: var(--card-2); }
+
+.back-btn { margin-left: -12px; color: var(--accent-text); }
+
+/* ---------- 5. 封面 ---------- */
+.cover {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: var(--radius-cover);
+  background: var(--cover-1);
+  color: var(--text-2);
+  overflow: hidden;
+}
+.cover .icon { width: 20px; height: 20px; opacity: 0.7; }
+.cover img { width: 100%; height: 100%; object-fit: cover; }
+.cover[data-tone="2"] { background: var(--cover-2); }
+.cover[data-tone="3"] { background: var(--cover-3); }
+.cover.sm { width: 36px; height: 36px; border-radius: var(--radius-cover-sm); }
+.cover.sm .icon { width: 16px; height: 16px; }
+
+/* ---------- 6. 列表（歌曲行、歌单行） ---------- */
+.list { list-style: none; margin: 0; padding: 0; }
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 4px 8px 8px;
+  margin-bottom: 6px;
+  background: var(--card);
+  border-radius: var(--radius-card);
+  transition: transform 120ms ease-out, background-color 120ms ease-out;
+}
+.row:active { background: var(--card-2); transform: scale(0.98); }
+
+.row-main {
+  flex: 1;
+  min-width: 0; /* 让长歌名可以被省略号截断 */
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  min-height: 44px;
+}
+
+.row-text { min-width: 0; flex: 1; }
+
+.row-title,
+.row-sub {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.row-sub { font-size: 13px; color: var(--text-2); }
+
+.row-meta { font-size: 13px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+
+.row-index {
+  width: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.actions { display: flex; gap: 8px; margin: 4px 0 16px; }
+
+/* ---------- 7. 空状态 ---------- */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 64px 24px;
+  color: var(--text-2);
+}
+.empty > .icon { width: 48px; height: 48px; margin-bottom: 12px; color: var(--accent-text); }
+.empty-title { margin: 0 0 4px; font-size: 20px; font-weight: 600; color: var(--text); }
+.empty-text { margin: 0 0 16px; font-size: 13px; max-width: 260px; }
+
+/* ---------- 8. 底部固定区：播放条 + 标签栏 ---------- */
+.dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  padding: 8px 12px env(safe-area-inset-bottom);
+  background: var(--bg);
+}
+
+.player-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 616px;
+  margin: 0 auto;
+  padding: 6px 4px 6px 8px;
+  background: var(--card-2);
+  border-radius: var(--radius-bar);
+}
+.player-bar .row-text { font-size: 15px; }
+.player-bar .icon-btn { color: var(--accent-text); }
+.player-bar.is-idle .row-title { color: var(--text-2); }
+.player-bar.is-idle .icon-btn { color: var(--text-2); opacity: 0.5; }
+
+.tab-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  max-width: 616px;
+  margin: 0 auto;
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 52px;
+  font-size: 11px;
+  color: var(--text-2);
+}
+.tab[aria-current="page"] { color: var(--accent-text); }
+
+/* ---------- 9. 提示条 ---------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--dock-height) + env(safe-area-inset-bottom) + 12px);
+  z-index: 20;
+  max-width: calc(100% - 32px);
+  padding: 10px 16px;
+  border-radius: var(--radius-control);
+  background: var(--text);
+  color: var(--bg);
+  font-size: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 8px);
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+.toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- 10. 减弱动态效果 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+}
