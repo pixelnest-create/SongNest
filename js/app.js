@@ -89,6 +89,14 @@ const router = startRouter(
   '/library',
 );
 
+// ---------- 离线支持（Service Worker） ----------
+// 本地开发时（localhost）默认不启用，否则改了代码刷新页面还是旧的缓存。
+// 想在本地测试离线功能，就在地址后面加 ?sw
+const isLocalDev = ['localhost', '127.0.0.1'].includes(location.hostname);
+if ('serviceWorker' in navigator && (!isLocalDev || new URLSearchParams(location.search).has('sw'))) {
+  navigator.serviceWorker.register('sw.js').catch((err) => console.warn('离线功能启用失败：', err));
+}
+
 // 导入新歌后，刷新当前页面，但保持滚动位置
 window.addEventListener('library:change', () => {
   keepScroll = true;

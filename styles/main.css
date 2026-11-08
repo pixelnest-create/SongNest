@@ -617,7 +617,25 @@ dialog::backdrop { background: rgb(20 12 4 / 0.4); }
 /* 全屏播放页里的提示条：放在按钮上方 */
 .now-playing .toast { bottom: calc(env(safe-area-inset-bottom) + 150px); }
 
-/* ---------- 13. 减弱动态效果 ---------- */
+/* ---------- 13. 提示卡片（添加到主屏幕等） ---------- */
+.hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 12px 4px 12px 12px;
+  background: var(--card);
+  border-radius: var(--radius-card);
+}
+.hint > .icon { margin-top: 2px; color: var(--accent-text); }
+.hint-text { flex: 1; min-width: 0; font-size: 13px; color: var(--text-2); }
+.hint-text p { margin: 0; }
+.hint-title { margin-bottom: 2px !important; font-size: 15px; font-weight: 600; color: var(--text); }
+.hint-ok { margin-top: 10px; }
+.hint + .page-subtitle { margin-top: 0; } /* 提示卡片下面的「N 首歌」不需要往上收 */
+.hint .icon-btn { margin-top: -10px; }
+
+/* ---------- 14. 减弱动态效果 ---------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     transition-duration: 0ms !important;

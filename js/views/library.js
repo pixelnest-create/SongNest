@@ -5,6 +5,7 @@ import { addToPlaylistFlow } from '../playlist-actions.js';
 import { getAllSongs } from '../db.js';
 import { pickAndImport } from '../importer.js';
 import { getState, playQueue, toggle } from '../player.js';
+import { dismissHint, hintHTML } from '../install-hint.js';
 
 export async function renderLibrary(container) {
   const songs = await getAllSongs();
@@ -14,6 +15,7 @@ export async function renderLibrary(container) {
       <h1 class="page-title">歌曲库</h1>
       <button class="btn btn-accent" data-action="import">${icon('plus')}导入</button>
     </header>
+    ${hintHTML()}
     ${songs.length ? listHTML(songs) : emptyHTML()}
   `;
 
@@ -23,6 +25,10 @@ export async function renderLibrary(container) {
     if (!target) return;
     switch (target.dataset.action) {
       case 'import': pickAndImport(); break;
+      case 'dismiss-hint':
+        dismissHint(target.dataset.hint);
+        target.closest('.hint').remove();
+        break;
       case 'play': {
         // 点的是正在播放的歌 → 暂停/继续；否则把整个歌曲库作为队列，从这首开始播
         const id = target.dataset.id;

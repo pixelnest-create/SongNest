@@ -8,6 +8,16 @@
   <meta name="theme-color" content="#1F1A16" media="(prefers-color-scheme: dark)">
   <meta name="color-scheme" content="light dark">
   <title>SongNest</title>
+
+  <!-- PWA：添加到主屏幕后像一个独立的应用 -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <!-- iOS 不读 manifest 里的图标和名字，要单独写 -->
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-title" content="SongNest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="stylesheet" href="styles/main.css">
   <script type="module" src="js/app.js"></script>
 </head>
