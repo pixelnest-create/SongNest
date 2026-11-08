@@ -25,6 +25,7 @@ let mode = loadMode();
 
 let objectURL = null; // 当前歌曲的临时网址，换歌时要释放
 let loadToken = 0;    // 用来丢弃过期的加载（用户连续快速点了好几首歌）
+let prefetched = null; // 提前读好的下一首：{ id, url }
 let loading = false;  // 正在从数据库读取新歌
 let wantPlay = false; // 读完之后要不要自动播放（读取期间用户可能按了暂停）
 let unlocked = false;
@@ -71,16 +72,32 @@ export function playShuffled(songs) {
 
 /** 播放 / 暂停 */
 export function toggle() {
+  if (getState().playing) pause();
+  else play();
+}
+
+/** 播放（已经在播就什么都不做）。锁屏界面的「播放」按钮用 */
+export function play() {
   if (!currentSong()) return;
   unlock();
   if (loading) {
     // 新歌还没读完：只记下用户的意思，读完后按这个决定播不播
-    wantPlay = !wantPlay;
+    wantPlay = true;
     emit();
     return;
   }
   if (audio.paused) audio.play().catch(reportError);
-  else audio.pause();
+}
+
+/** 暂停 */
+export function pause() {
+  if (!currentSong()) return;
+  if (loading) {
+    wantPlay = false;
+    emit();
+    return;
+  }
+  audio.pause();
 }
 
 /**
@@ -188,6 +205,24 @@ function shuffledIndexes(n, avoidFirst = -1) {
   return a;
 }
 
+/** 下一首会是哪首（不改变当前状态）。随机模式一轮结束时还没洗牌，算不出来，返回 null */
+function peekNextSong() {
+  if (!currentSong() || mode === 'one') return null; // 单曲循环自然放完不换歌
+  if (pos < order.length - 1) return queue[order[pos + 1]];
+  if (mode === 'loop') return queue[order[0]];
+  return null;
+}
+
+/** 提前把下一首的音频文件从数据库读出来，准备好网址 */
+async function prefetchNext() {
+  const song = peekNextSong();
+  if (!song || prefetched?.id === song.id || song.id === currentSong()?.id) return;
+  const blob = await getAudio(song.id).catch(() => null);
+  if (!blob || peekNextSong()?.id !== song.id) return; // 读完时「下一首」已经变了
+  if (prefetched) URL.revokeObjectURL(prefetched.url);
+  prefetched = { id: song.id, url: URL.createObjectURL(blob) };
+}
+
 /** 读取当前歌曲的音频文件并开始播放 */
 async function load(autoplay) {
   const token = ++loadToken;
@@ -198,16 +233,26 @@ async function load(autoplay) {
   if (objectURL && audio.src === objectURL) audio.pause();
   emit(); // 先让界面立刻显示新歌名，不用等文件读完
 
-  const blob = await getAudio(song.id);
-  if (token !== loadToken) return; // 读取期间用户又换了歌，放弃这次
-  loading = false;
-  if (!blob) {
-    reportError(new Error('找不到音频文件'));
-    return;
+  let url;
+  if (prefetched?.id === song.id) {
+    // 下一首已经提前读好了：直接用，中间没有任何等待。
+    // 锁屏时一首歌放完，iOS 只给很短的时间切到下一首，有等待就可能被系统停掉
+    url = prefetched.url;
+    prefetched = null;
+  } else {
+    const blob = await getAudio(song.id);
+    if (token !== loadToken) return; // 读取期间用户又换了歌，放弃这次
+    if (!blob) {
+      loading = false;
+      reportError(new Error('找不到音频文件'));
+      return;
+    }
+    url = URL.createObjectURL(blob);
   }
+  loading = false;
 
-  if (objectURL) URL.revokeObjectURL(objectURL);
-  objectURL = URL.createObjectURL(blob);
+  if (objectURL && objectURL !== url) URL.revokeObjectURL(objectURL);
+  objectURL = url;
   audio.src = objectURL;
   audio.loop = mode === 'one';
 
@@ -263,7 +308,12 @@ function reportError(error) {
 
 // ---------- 监听 <audio> 自己的事件 ----------
 
-for (const type of ['play', 'pause', 'emptied']) audio.addEventListener(type, emit);
+for (const type of ['play', 'pause', 'emptied', 'seeked']) audio.addEventListener(type, emit);
+
+// 一首歌开始播放后，趁空闲提前读好下一首
+audio.addEventListener('playing', () => {
+  if (audio.src === objectURL) prefetchNext();
+});
 
 audio.addEventListener('timeupdate', () => {
   window.dispatchEvent(new CustomEvent('player:time', { detail: getState() }));

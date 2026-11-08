@@ -4,6 +4,7 @@ import { icon } from './icons.js';
 import { toast } from './ui.js';
 import { mountPlayerBar } from './player-bar.js';
 import { getState } from './player.js';
+import { setupMediaSession } from './media-session.js';
 import { renderLibrary } from './views/library.js';
 import { renderPlaylists } from './views/playlists.js';
 import { renderPlaylistDetail } from './views/playlist-detail.js';
@@ -29,6 +30,7 @@ function setActiveTab(name) {
 
 // ---------- 播放状态 ----------
 mountPlayerBar(document.getElementById('player-bar'));
+setupMediaSession();
 
 /** 在当前页面的列表里高亮正在播放的歌 */
 function markCurrent() {
