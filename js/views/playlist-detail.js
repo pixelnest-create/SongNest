@@ -47,9 +47,11 @@ export async function renderPlaylistDetail(container, { id }) {
     switch (target.dataset.action) {
       case 'play-all':
         playQueue(songs, 0);
+        openNowPlaying();
         break;
       case 'shuffle':
         playShuffled(songs); // 切换到随机模式并开始播放
+        openNowPlaying();
         break;
       case 'play': {
         // 和歌曲库一样：播放这首并打开全屏播放页；点正在播放的歌只打开播放页
