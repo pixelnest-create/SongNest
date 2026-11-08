@@ -17,7 +17,8 @@
   <meta name="apple-mobile-web-app-title" content="SongNest">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <!-- 透明状态栏：页面铺到屏幕最顶上（时间、电量浮在页面上面），全屏播放页的渐变才能一直延伸到顶 -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="styles/main.css">
   <script type="module" src="js/app.js"></script>
 </head>
@@ -35,5 +36,8 @@
   </footer>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- 状态栏透明时，挡住滚到时间、电量下面的列表内容 -->
+  <div class="safe-top" aria-hidden="true"></div>
 </body>
 </html>

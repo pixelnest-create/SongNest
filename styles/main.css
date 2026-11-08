@@ -331,6 +331,22 @@ button {
 }
 .tab[aria-current="page"] { color: var(--accent-text); }
 
+/*
+ * 状态栏区域的背景：状态栏是透明的（见 index.html），页面向上滚动时，
+ * 内容会钻到时间、电量文字下面，显得很乱。用一条和页面同色的固定条挡住。
+ * 不在刘海屏 / 不是主屏幕应用时，safe-area-inset-top 是 0，这一条就不存在。
+ */
+.safe-top {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 15;
+  height: env(safe-area-inset-top);
+  background: var(--bg);
+  pointer-events: none;
+}
+
 /* ---------- 9. 提示条 ---------- */
 .toast {
   position: fixed;
