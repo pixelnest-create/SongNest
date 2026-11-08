@@ -34,7 +34,21 @@ const PATHS = {
     '<path d="M4 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M18 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>',
 };
 
+// 实心图标：全屏播放页的大按钮用，比线条图标更醒目、更精致
+const FILLED = {
+  'play-filled': '<path d="M6 4v16a1 1 0 0 0 1.524 .852l13 -8a1 1 0 0 0 0 -1.704l-13 -8a1 1 0 0 0 -1.524 .852z"/>',
+  'pause-filled':
+    '<path d="M9 4h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h2a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2z"/><path d="M17 4h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h2a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2z"/>',
+  'next-filled':
+    '<path d="M3 5v14a1 1 0 0 0 1.504 .864l12 -7a1 1 0 0 0 0 -1.728l-12 -7a1 1 0 0 0 -1.504 .864z"/><path d="M20 4a1 1 0 0 1 1 1v14a1 1 0 0 1 -2 0v-14a1 1 0 0 1 1 -1z"/>',
+  'prev-filled':
+    '<path d="M19.496 4.136l-12 7a1 1 0 0 0 0 1.728l12 7a1 1 0 0 0 1.504 -.864v-14a1 1 0 0 0 -1.504 -.864z"/><path d="M4 4a1 1 0 0 1 1 1v14a1 1 0 0 1 -2 0v-14a1 1 0 0 1 1 -1z"/>',
+};
+
 /** 返回一个 SVG 图标的 HTML 字符串，例如 icon('play') */
 export function icon(name) {
+  if (FILLED[name]) {
+    return `<svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${FILLED[name]}</svg>`;
+  }
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PATHS[name] ?? ''}</svg>`;
 }

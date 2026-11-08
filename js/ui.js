@@ -16,7 +16,7 @@ export function formatDuration(seconds) {
 }
 
 /** 根据 id 算出 1~3 中的一个数字，同一首歌每次得到的占位颜色都一样 */
-function toneFor(id) {
+export function toneFor(id) {
   let hash = 0;
   for (const ch of String(id)) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
   return (hash % 3) + 1;

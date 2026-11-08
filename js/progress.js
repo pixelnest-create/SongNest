@@ -3,15 +3,18 @@
 import { formatDuration } from './ui.js';
 import { getState, seek } from './player.js';
 
-/** 返回进度条的 HTML，放进页面后再调用 mountProgress */
-export function progressHTML(className = '') {
-  return `
-    <div class="progress ${className}">
-      <span class="pb-time" data-role="elapsed">0:00</span>
-      <input class="seek" type="range" min="0" max="0" step="0.1" value="0" aria-label="播放进度">
-      <span class="pb-time" data-role="remaining">0:00</span>
-    </div>
-  `;
+/**
+ * 返回进度条的 HTML，放进页面后再调用 mountProgress。
+ * stacked: true 时，时间显示在进度条下方两端（全屏播放页用）；否则在左右两侧（底部播放条用）
+ */
+export function progressHTML(className = '', { stacked = false } = {}) {
+  const range = '<input class="seek" type="range" min="0" max="0" step="0.1" value="0" aria-label="播放进度">';
+  const elapsed = '<span class="pb-time" data-role="elapsed">0:00</span>';
+  const remaining = '<span class="pb-time" data-role="remaining">0:00</span>';
+  if (stacked) {
+    return `<div class="progress-stacked ${className}">${range}<div class="progress-times">${elapsed}${remaining}</div></div>`;
+  }
+  return `<div class="progress ${className}">${elapsed}${range}${remaining}</div>`;
 }
 
 /** 让 root 里的进度条动起来：跟随播放进度，并响应拖动 */

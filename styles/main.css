@@ -292,7 +292,7 @@ button {
 .seek::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 2px;
-  background: linear-gradient(to right, var(--accent) var(--p), var(--track) var(--p));
+  background: linear-gradient(to right, var(--seek-fill, var(--accent)) var(--p), var(--track) var(--p));
 }
 .seek::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -301,11 +301,11 @@ button {
   margin-top: -5px;
   border: 0;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--seek-fill, var(--accent));
 }
 .seek::-moz-range-track { height: 4px; border-radius: 2px; background: var(--track); }
-.seek::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent); }
-.seek::-moz-range-thumb { width: 14px; height: 14px; border: 0; border-radius: 50%; background: var(--accent); }
+.seek::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--seek-fill, var(--accent)); }
+.seek::-moz-range-thumb { width: 14px; height: 14px; border: 0; border-radius: 50%; background: var(--seek-fill, var(--accent)); }
 
 /* 列表中正在播放的歌 */
 .row-main.is-current .row-title { color: var(--accent-text); font-weight: 600; }
@@ -490,19 +490,41 @@ dialog::backdrop { background: rgb(20 12 4 / 0.4); }
   width: 100%;
   height: 100%;
   margin: 0;
+  overflow: hidden; /* 滑入动画期间不要出现滚动条 */
 }
 .now-playing::backdrop { background: var(--bg); }
 .now-playing[open] .np-panel { animation: sheet-up 250ms ease-out; }
 
+/*
+ * 背景：从封面主色调渐变到奶油色。
+ * --np-h（色相）和 --np-s（饱和度）由 now-playing.js 根据封面设置，
+ * 亮度在这里固定，保证文字始终清楚。
+ */
 .np-panel {
+  --np-h: 32;
+  --np-s: 45%;
+  --np-top: hsl(var(--np-h) var(--np-s) 80%);
+  --np-mid: hsl(var(--np-h) calc(var(--np-s) * 0.7) 90%);
+  --np-text-2: #5E4B39;
+  --np-shadow: 0 16px 40px rgb(90 55 20 / 0.22);
+  --seek-fill: var(--text);
+  --track: rgb(59 47 37 / 0.15);
+
   display: flex;
   flex-direction: column;
-  align-items: center;
   height: 100dvh;
-  max-width: 480px;
-  margin: 0 auto;
   padding: calc(env(safe-area-inset-top) + 8px) 24px calc(env(safe-area-inset-bottom) + 24px);
-  background: var(--bg);
+  background: var(--bg); /* 不支持渐变变量的老系统用纯色 */
+  background: linear-gradient(180deg, var(--np-top) 0%, var(--np-mid) 45%, var(--bg) 100%);
+}
+@media (prefers-color-scheme: dark) {
+  .np-panel {
+    --np-top: hsl(var(--np-h) var(--np-s) 26%);
+    --np-mid: hsl(var(--np-h) calc(var(--np-s) * 0.7) 17%);
+    --np-text-2: #C2B3A4;
+    --np-shadow: 0 16px 40px rgb(0 0 0 / 0.45);
+    --track: rgb(243 234 224 / 0.18);
+  }
 }
 
 .np-header {
@@ -510,61 +532,90 @@ dialog::backdrop { background: rgb(20 12 4 / 0.4); }
   align-items: center;
   justify-content: space-between;
   width: calc(100% + 24px); /* 让两侧按钮的图标和下面的内容对齐 */
-  margin: 0 -12px;
+  max-width: 504px;
+  margin: 0 auto;
+  align-self: center;
 }
 .np-header .icon-btn { color: var(--text); }
-.np-position { font-size: 13px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.np-label { font-size: 13px; color: var(--np-text-2); }
+
+/* 内容区：在高屏幕上整体垂直居中，宽屏上限制宽度 */
+.np-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
 
 /* 大封面：在小屏幕上自动缩小，保证下面的按钮放得下 */
 .np-cover {
-  width: min(100%, 340px, 42dvh);
+  width: min(100%, 360px, 44dvh);
   aspect-ratio: 1;
-  margin: auto 0 24px;
+  margin: 0 auto 28px;
+  border-radius: 10px;
+  box-shadow: var(--np-shadow);
 }
 .cover.lg { width: 100%; height: 100%; border-radius: 10px; }
-.cover.lg .icon { width: 64px; height: 64px; }
+.cover.lg .icon { width: 72px; height: 72px; }
 
-.np-info { width: 100%; text-align: center; }
+/* 歌名一行：左边歌名和歌手，右边播放模式按钮 */
+.np-info { display: flex; align-items: center; gap: 8px; }
+.np-text { flex: 1; min-width: 0; }
 .np-title {
-  margin: 0 0 4px;
-  font-size: 20px;
+  margin: 0 0 2px;
+  font-size: 22px;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.np-artist { margin: 0; font-size: 15px; color: var(--text-2); }
+.np-artist {
+  margin: 0;
+  font-size: 16px;
+  color: var(--np-text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.np-mode { margin-right: -10px; color: var(--accent-text); }
 
-.np-progress { width: 100%; margin: 16px 0 8px; }
+/* 进度条：时间放在下方两端 */
+.np-progress { margin: 18px 0 0; }
+.np-progress .seek::-webkit-slider-thumb { width: 12px; height: 12px; margin-top: -4px; }
+.np-progress .seek::-moz-range-thumb { width: 12px; height: 12px; }
+.progress-times { display: flex; justify-content: space-between; margin-top: -4px; }
+.progress-times .pb-time { color: var(--np-text-2); }
 
+/* 控制按钮：实心图标，没有底色 */
 .np-controls {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  margin-bottom: auto;
+  justify-content: center;
+  gap: 32px;
+  margin-top: 16px;
 }
-.np-controls .icon-btn { color: var(--text); }
-.np-controls .icon-btn:disabled { color: var(--text-2); opacity: 0.4; }
-.np-skip .icon { width: 32px; height: 32px; }
-.np-mode { color: var(--accent-text) !important; }
-
+.np-skip,
 .np-play {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 72px;
-  height: 72px;
+  color: var(--text);
   border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-  transition: transform 120ms ease-out;
+  transition: transform 120ms ease-out, background-color 120ms ease-out;
 }
-.np-play:active { transform: scale(0.96); }
-.np-play .icon { width: 32px; height: 32px; }
+.np-skip { width: 60px; height: 60px; }
+.np-skip .icon { width: 30px; height: 30px; }
+.np-play { width: 84px; height: 84px; }
+.np-play .icon { width: 52px; height: 52px; }
+.np-skip:active,
+.np-play:active { transform: scale(0.92); background: rgb(0 0 0 / 0.05); }
+.np-skip:disabled { opacity: 0.3; cursor: default; transform: none; background: none; }
 
 /* 全屏播放页里的提示条：放在按钮上方 */
-.now-playing .toast { bottom: calc(env(safe-area-inset-bottom) + 140px); }
+.now-playing .toast { bottom: calc(env(safe-area-inset-bottom) + 150px); }
 
 /* ---------- 13. 减弱动态效果 ---------- */
 @media (prefers-reduced-motion: reduce) {
