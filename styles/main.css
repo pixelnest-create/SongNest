@@ -257,6 +257,8 @@ button {
 .card-stat { margin: 0 0 2px; font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .card-text { margin: 0; font-size: 13px; color: var(--text-2); }
 .card-note { margin-top: 10px; }
+.card-text strong { color: var(--text); font-weight: 600; }
+.card-text a { color: var(--accent-text); text-decoration: underline; }
 .card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .btn:disabled { opacity: 0.5; cursor: default; transform: none; }
 

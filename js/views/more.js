@@ -10,6 +10,7 @@ import { pickFiles } from '../importer.js';
 // 为什么要分两步（先「导出备份」，再「保存备份文件」）：iPhone 只允许在用户点击的那一刻
 // 打开「分享 / 存储到文件」，而生成备份需要先读数据库，等读完那一刻已经过去了。
 let prepared = null; // { file: File }
+const REPO_URL = 'https://github.com/pixelnest-create/SongNest';
 window.addEventListener('hashchange', () => { prepared = null; }); // 离开本页就作废，免得以后保存到旧的备份
 
 export async function renderMore(container) {
@@ -45,6 +46,13 @@ export async function renderMore(container) {
       </div>
       ${prepared ? `<p class="card-text card-note">备份已准备好：${escapeHTML(prepared.file.name)}。点上面的按钮，选「存储到文件」。</p>` : ''}
       ${songs.length ? '' : '<p class="card-text card-note">歌曲库是空的，还没有可以备份的内容。</p>'}
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">关于 SongNest</h2>
+      <p class="card-text"><strong>隐私：</strong>SongNest 不收集任何信息，没有账号，也不上传任何东西。你的歌曲和歌单只保存在这台设备上，开发者也看不到。</p>
+      <p class="card-text card-note"><strong>版权：</strong>SongNest 不提供任何音乐，只播放你自己导入的文件。请只导入你有权使用的音乐。</p>
+      <p class="card-text card-note">免费、开源（MIT 许可证），按原样提供，不做任何担保。遇到问题或有建议，可以到 <a href="${REPO_URL}/issues" target="_blank" rel="noopener">GitHub</a> 反馈。</p>
     </section>
   `;
 
@@ -116,6 +124,9 @@ async function restoreBackup(picking) {
     confirmLabel: '恢复',
   });
   if (!ok) return;
+
+  // 和导入时一样，请求「持久存储」，降低浏览器清理数据的可能（不支持时忽略）
+  navigator.storage?.persist?.().catch(() => {});
 
   try {
     const result = await restoreFromBackup(backup, (done, total) => {

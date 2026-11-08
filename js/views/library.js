@@ -137,7 +137,7 @@ function emptyHTML() {
     <div class="empty">
       ${icon('music')}
       <h2 class="empty-title">导入你的第一首歌</h2>
-      <p class="empty-text">从「文件」App 选择音乐，歌曲会保存在这台手机上，不需要联网。</p>
+      <p class="empty-text">从「文件」App 选择音乐，歌曲会保存在这台手机上，不需要联网。请只导入你有权使用的音乐。</p>
       <button class="btn btn-accent" data-action="import">${icon('plus')}导入音乐</button>
     </div>
   `;

@@ -4,7 +4,7 @@
 // 更新方式：每次发布新版本时，把下面的 VERSION 加 1。
 // 手机打开应用时浏览器会发现 sw.js 变了，在后台下载新文件，下次打开就是新版本。
 
-const VERSION = 2;
+const VERSION = 3;
 const CACHE = `songnest-v${VERSION}`;
 
 // 应用的全部文件。新增或删除文件时要同步修改这里（npm test 会检查有没有漏掉）
