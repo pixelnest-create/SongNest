@@ -545,6 +545,16 @@ dialog::backdrop { background: rgb(20 12 4 / 0.4); }
   margin: 0 -12px;
 }
 .np-header .icon-btn { color: var(--text); }
+/* 播放页打开时贴在页面最顶上的同色细条，给新版 Safari 的状态栏取色用（被播放页盖住，看不见） */
+.status-tint {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: max(env(safe-area-inset-top), 8px);
+  z-index: 100;
+  pointer-events: none;
+}
 /* 看不见的「取色器」：用来读出 --np-top 实际是什么颜色，设给状态栏 */
 .np-theme-probe { display: none; color: var(--np-top); }
 .np-label { font-size: 13px; color: var(--np-text-2); }

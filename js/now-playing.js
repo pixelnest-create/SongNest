@@ -118,16 +118,26 @@ export function openNowPlaying() {
 // 顶部要跟着换成同样的颜色，不然会像一道白边。不同版本的 Safari 取色方式不同：
 //   - 旧版本：读 <meta name="theme-color">
 //   - 新版本：不再读 theme-color，而是取页面（html / body）的背景色
-// 所以两个都改。
+//   - 最新版本：还会取「贴在屏幕最顶上的固定元素」的颜色。全屏播放页是最上层的弹窗，
+//     Safari 取色时可能跳过它，所以在页面最顶上临时放一条同色的固定细条
+// 三个都改。
 
 const themeMetas = [...document.querySelectorAll('meta[name="theme-color"]')];
 const originalThemes = themeMetas.map((m) => m.content);
+let statusTint = null;
 
 /** color 为 null 时恢复原来的颜色 */
 function setThemeColor(color) {
   themeMetas.forEach((meta, i) => { meta.content = color ?? originalThemes[i]; });
   for (const el of [document.documentElement, document.body]) {
     el.style.backgroundColor = color ?? ''; // 空字符串 = 去掉临时设置，回到 CSS 里的 var(--bg)
+  }
+  if (color) {
+    statusTint ??= Object.assign(document.createElement('div'), { className: 'status-tint' });
+    statusTint.style.backgroundColor = color;
+    if (!statusTint.isConnected) document.body.append(statusTint);
+  } else {
+    statusTint?.remove();
   }
 }
 
