@@ -28,6 +28,7 @@ const FILES = [
   'js/playlist-actions.js',
   'js/progress.js',
   'js/router.js',
+  'js/song-actions.js',
   'js/ui.js',
   'js/views/library.js',
   'js/views/playlist-detail.js',

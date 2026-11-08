@@ -25,6 +25,12 @@ export function toneFor(id) {
 // 封面图片的临时网址（object URL）。每首歌只生成一次，反复渲染时复用。
 // 以「歌曲 id」为键，因为一首歌的封面不会变。
 const coverURLs = new Map();
+// 封面换了（比如替换音频时用上了新文件的封面）：丢掉旧网址
+window.addEventListener('cover:change', (e) => {
+  const url = coverURLs.get(e.detail.songId);
+  if (url) URL.revokeObjectURL(url);
+  coverURLs.delete(e.detail.songId);
+});
 
 /**
  * 封面：有封面图就显示图片，没有就显示带音符的色块。

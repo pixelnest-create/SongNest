@@ -41,7 +41,8 @@ function result(request) {
 function finished(tx) {
   return new Promise((resolve, reject) => {
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
+    // 出错时，具体原因记在出错的那个请求上（event.target），事务自己的 error 这时可能还是 null
+    tx.onerror = (event) => reject(event.target.error ?? tx.error);
     tx.onabort = () => reject(tx.error ?? new DOMException('事务被中止', 'AbortError'));
   });
 }
@@ -89,6 +90,25 @@ export async function updateSong(id, patch) {
   const song = await result(store.get(id));
   if (song) store.put({ ...song, ...patch });
   await finished(tx);
+  return song ? { ...song, ...patch } : null;
+}
+
+/**
+ * 替换一首歌的音频文件，同时更新歌曲信息（文件名、时长等）。
+ * 歌曲 id 不变，所以它在所有歌单里的位置都不受影响。
+ * 新文件如果已经作为另一首歌导入过，会抛出 ConstraintError。
+ */
+export async function replaceSongAudio(id, audioBlob, patch) {
+  const db = await openDB();
+  const tx = db.transaction(['songs', 'audio'], 'readwrite');
+  const songs = tx.objectStore('songs');
+  const song = await result(songs.get(id));
+  if (!song) throw new Error('歌曲不存在');
+  const updated = { ...song, ...patch };
+  songs.put(updated);
+  tx.objectStore('audio').put({ id, blob: audioBlob });
+  await finished(tx);
+  return updated;
 }
 
 /** 读取一首歌的音频文件（播放时用） */

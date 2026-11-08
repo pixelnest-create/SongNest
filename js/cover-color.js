@@ -12,6 +12,7 @@ const TONE_HS = {
 const MAX_SATURATION = 50; // 太鲜艳的颜色做背景会刺眼，限制一下
 
 const cache = new Map(); // 歌曲 id → { h, s }，每首歌只算一次
+window.addEventListener('cover:change', (e) => cache.delete(e.detail.songId)); // 封面换了，重新取色
 
 /** 返回 { h: 0~360, s: 0~50 } */
 export async function coverHue(song) {

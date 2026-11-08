@@ -53,19 +53,23 @@ function build() {
   const toggleBtn = dialog.querySelector('[data-action="toggle"]');
   const nextBtn = dialog.querySelector('[data-action="next"]');
   let shownSongId;
+  let shownCover;
 
   function render({ song, playing, mode, hasNext }) {
     if (!song) {
       if (dialog.open) dialog.close();
       return;
     }
-    if (song.id !== shownSongId) {
-      shownSongId = song.id;
+    shownSongId = song.id;
+    // 封面和背景色只在封面变了时重画；文字每次都更新（歌名、歌手可能被编辑过）
+    const coverKey = `${song.id}|${Boolean(song.cover)}`;
+    if (coverKey !== shownCover) {
+      shownCover = coverKey;
       $('cover').innerHTML = coverHTML(song.id, { cover: song.cover, size: 'lg' });
-      $('title').textContent = song.title;
-      $('artist').textContent = song.artist ?? '未知歌手';
       paintBackground(song);
     }
+    $('title').textContent = song.title;
+    $('artist').textContent = song.artist ?? '未知歌手';
     toggleBtn.innerHTML = icon(playing ? 'pause-filled' : 'play-filled');
     toggleBtn.setAttribute('aria-label', playing ? '暂停' : '播放');
     modeBtn.innerHTML = icon(MODE_ICONS[mode]);

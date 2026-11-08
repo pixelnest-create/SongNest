@@ -20,20 +20,35 @@ class ImportError extends Error {}
 
 let importing = false;
 
-/** 打开系统的文件选择器（iPhone 上是「文件」App），选完后自动导入 */
+/**
+ * 打开系统的文件选择器（iPhone 上是「文件」App），返回选中的文件数组。
+ * 必须在点击事件里直接调用，否则 iOS 不会弹出选择器。
+ * 用户取消时，返回的 Promise 可能永远不会完成（有的浏览器不通知「取消」），这不影响使用。
+ */
+export function pickFiles({ multiple = true } = {}) {
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = ACCEPT;
+    input.multiple = multiple;
+    input.hidden = true;
+    const done = () => {
+      const files = [...input.files];
+      input.remove();
+      resolve(files);
+    };
+    input.addEventListener('change', done);
+    input.addEventListener('cancel', done);
+    document.body.append(input); // iOS 上 input 要在页面里才能可靠地弹出选择器
+    input.click();
+  });
+}
+
+/** 「导入」按钮：选文件，选完自动导入 */
 export function pickAndImport() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = ACCEPT;
-  input.multiple = true;
-  input.hidden = true;
-  input.addEventListener('change', () => {
-    const files = [...input.files];
-    input.remove();
+  pickFiles().then((files) => {
     if (files.length) importFiles(files);
   });
-  document.body.append(input); // iOS 上 input 要在页面里才能可靠地弹出选择器
-  input.click();
 }
 
 /**
@@ -73,9 +88,22 @@ export async function importFiles(files) {
 
 /** 导入单个文件，返回 'added' 或 'duplicate' */
 async function importOne(file) {
-  const fileKey = `${file.name}|${file.size}`;
-  if (await hasFileKey(fileKey)) return 'duplicate';
+  if (await hasFileKey(fileKeyOf(file))) return 'duplicate';
+  const { blob, ...info } = await readAudioFile(file);
+  await addSong({ id: newId(), ...info, addedAt: Date.now() }, blob);
+  return 'added';
+}
 
+export function fileKeyOf(file) {
+  return `${file.name}|${file.size}`;
+}
+
+/**
+ * 读取一个音频文件：检查格式、读出标题/歌手/专辑/封面/时长。
+ * 导入和「替换音频文件」都用它。
+ * @returns {Promise<{blob, title, artist, album, duration, cover, fileName, fileSize, fileKey, mimeType}>}
+ */
+export async function readAudioFile(file) {
   const mimeType = mimeOf(file);
   if (!mimeType || !document.createElement('audio').canPlayType(mimeType)) {
     throw new ImportError('不支持这种格式');
@@ -85,8 +113,8 @@ async function importOne(file) {
   const meta = parseMetadata(buffer);
   const blob = new Blob([buffer], { type: mimeType });
 
-  const song = {
-    id: newId(),
+  return {
+    blob,
     title: meta.title || file.name.replace(/\.[^.]+$/, ''),
     artist: meta.artist,
     album: meta.album,
@@ -94,13 +122,9 @@ async function importOne(file) {
     cover: meta.cover ? await makeThumbnail(meta.cover) : null,
     fileName: file.name,
     fileSize: file.size,
-    fileKey,
+    fileKey: fileKeyOf(file),
     mimeType,
-    addedAt: Date.now(),
   };
-
-  await addSong(song, blob);
-  return 'added';
 }
 
 /** 优先按扩展名判断类型（不同系统给的 file.type 不统一） */
@@ -153,9 +177,11 @@ async function makeThumbnail({ data, mime }) {
   }
 }
 
-function reasonFor(err) {
+/** 把导入出错的原因转成给用户看的一句话 */
+export function reasonFor(err) {
   if (err instanceof ImportError) return err.message;
   if (err?.name === 'QuotaExceededError') return '手机存储空间不足';
+  if (err?.name === 'ConstraintError') return '这个文件已经在歌曲库里了';
   return '文件无法读取';
 }
 

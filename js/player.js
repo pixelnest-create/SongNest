@@ -221,6 +221,25 @@ export async function restoreSession() {
   emit();
 }
 
+/**
+ * 一首歌的信息被修改后调用，让播放队列里的这首歌也换成新信息。
+ * audioChanged：音频文件被替换了。如果正好是当前这首，就重新加载（从头播放）
+ */
+export function refreshSong(updated, { audioChanged = false } = {}) {
+  let isCurrent = false;
+  queue = queue.map((s, i) => {
+    if (s.id !== updated.id) return s;
+    if (i === order[pos]) isCurrent = true;
+    return updated;
+  });
+  if (audioChanged && prefetched?.id === updated.id) {
+    URL.revokeObjectURL(prefetched.url); // 提前读好的是旧文件，作废
+    prefetched = null;
+  }
+  if (isCurrent && audioChanged) return load(getState().playing);
+  if (isCurrent) emit();
+}
+
 /** 切换到下一种播放模式，返回新模式 */
 export function cycleMode() {
   const nextMode = MODES[(MODES.indexOf(mode) + 1) % MODES.length];

@@ -454,6 +454,9 @@ dialog::backdrop { background: rgb(20 12 4 / 0.4); }
 }
 .field:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .field-error { margin: 6px 0 0; font-size: 13px; color: var(--danger); }
+.field-label { display: block; }
+.field-label:not(:first-of-type) { margin-top: 12px; } /* 第二个及以后的输入框，上面留点空 */
+.field-label span { display: block; margin-bottom: 4px; font-size: 13px; color: var(--text-2); }
 
 .btn-danger { background: var(--danger); color: var(--on-danger); font-weight: 600; }
 

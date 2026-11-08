@@ -3,11 +3,12 @@ import { icon } from '../icons.js';
 import { coverHTML, escapeHTML, formatDuration, toast } from '../ui.js';
 import {
   addSongsToPlaylist, deletePlaylist, getAllSongs, getPlaylist, getSongsByIds,
-  moveSongInPlaylist, removeSongFromPlaylist, renamePlaylist,
+  moveSongInPlaylist, renamePlaylist,
 } from '../db.js';
 import { actionSheet, confirmDialog, pickSongs, promptDialog } from '../dialogs.js';
 import { getState, playQueue } from '../player.js';
 import { openNowPlaying } from '../now-playing.js';
+import { songMenu } from '../song-actions.js';
 
 // 正在「调整顺序」的歌单 id。离开页面时自动退出这个模式。
 let editingId = null;
@@ -60,7 +61,7 @@ export async function renderPlaylistDetail(container, { id }) {
         await addSongs(playlist);
         break;
       case 'more':
-        await songMenu(playlist, songs[index]);
+        await songMenu(songs[index], { playlist });
         break;
       case 'menu':
         await playlistMenu(playlist, songs.length);
@@ -99,17 +100,6 @@ async function addSongs(playlist) {
   toast(`已添加 ${added} 首`);
 }
 
-async function songMenu(playlist, song) {
-  const choice = await actionSheet({
-    title: '歌曲操作',
-    subtitle: song.title,
-    actions: [{ value: 'remove', label: '从歌单中移除', icon: 'remove', danger: true }],
-  });
-  if (choice === 'remove') {
-    await removeSongFromPlaylist(playlist.id, song.id);
-    toast('已从歌单中移除');
-  }
-}
 
 async function playlistMenu(playlist, count) {
   const actions = [{ value: 'rename', label: '重命名', icon: 'edit' }];

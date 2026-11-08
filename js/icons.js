@@ -30,6 +30,8 @@ const PATHS = {
   up: '<path d="M12 5v14"/><path d="M18 11l-6 -6"/><path d="M6 11l6 -6"/>',
   down: '<path d="M12 5v14"/><path d="M18 13l-6 6"/><path d="M6 13l6 6"/>',
   sort: '<path d="M3 9l4 -4l4 4m-4 -4v14"/><path d="M21 15l-4 4l-4 -4m4 4v-14"/>',
+  replace:
+    '<path d="M3 4a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"/><path d="M15 16a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"/><path d="M21 11v-3a2 2 0 0 0 -2 -2h-6l3 3m0 -6l-3 3"/><path d="M3 13v3a2 2 0 0 0 2 2h6l-3 -3m0 6l3 -3"/>',
   'playlist-add': '<path d="M19 8h-14"/><path d="M5 12h9"/><path d="M11 16h-6"/><path d="M15 16h6"/><path d="M18 13v6"/>',
   remove: '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M9 12h6"/>',
   chevron: '<path d="M9 6l6 6l-6 6"/>',

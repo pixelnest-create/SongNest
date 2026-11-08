@@ -31,12 +31,15 @@ export function setupMediaSession() {
     try { navigator.mediaSession.setActionHandler(action, null); } catch { /* 忽略 */ }
   }
 
-  let shownSongId;
+  // 告诉系统的信息有变化（换歌、编辑了歌名歌手、换了封面）时才更新
+  let shownKey;
   window.addEventListener('player:change', async (e) => {
     const state = e.detail;
-    if (state.song && state.song.id !== shownSongId) {
-      shownSongId = state.song.id;
-      await updateMetadata(state.song);
+    const { song } = state;
+    const key = song && [song.id, song.title, song.artist, song.album, Boolean(song.cover)].join('|');
+    if (song && key !== shownKey) {
+      shownKey = key;
+      await updateMetadata(song);
     }
     navigator.mediaSession.playbackState = !state.song ? 'none' : state.playing ? 'playing' : 'paused';
     updatePosition(state);
@@ -72,6 +75,7 @@ function updatePosition({ song, duration, currentTime }) {
 // ---------- 封面图 ----------
 
 const dataURLCache = new Map(); // 歌曲 id → data: 网址（每次从数据库读出的 Blob 都是新对象，所以用 id 做键）
+window.addEventListener('cover:change', (e) => dataURLCache.delete(e.detail.songId));
 
 /**
  * Blob → data: 网址。

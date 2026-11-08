@@ -26,18 +26,20 @@ export function mountPlayerBar(bar) {
   const toggleBtn = bar.querySelector('[data-action="toggle"]');
   const nextBtn = bar.querySelector('[data-action="next"]');
 
-  let shownSongId; // 当前显示的是哪首歌。封面只在换歌时重画，避免图片闪烁
+  let shownCover; // 当前显示的封面（歌曲 id + 有没有封面）。封面只在变了时重画，避免图片闪烁
 
   function render({ song, playing, hasNext }) {
     bar.classList.toggle('is-idle', !song);
 
-    const songId = song?.id ?? null; // 没有歌时是 null，和初始的 undefined 不同，保证第一次一定会画
-    if (songId !== shownSongId) {
-      shownSongId = songId;
+    // 没有歌时是 'idle'，和初始的 undefined 不同，保证第一次一定会画
+    const coverKey = song ? `${song.id}|${Boolean(song.cover)}` : 'idle';
+    if (coverKey !== shownCover) {
+      shownCover = coverKey;
       $('cover').innerHTML = coverHTML(song?.id ?? 'idle', { cover: song?.cover, small: true });
-      $('title').textContent = song ? song.title : '未在播放';
-      $('artist').textContent = song ? song.artist ?? '未知歌手' : '';
     }
+    // 文字每次都更新：歌名、歌手可能被编辑过
+    $('title').textContent = song ? song.title : '未在播放';
+    $('artist').textContent = song ? song.artist ?? '未知歌手' : '';
 
     openBtn.disabled = !song;
     toggleBtn.innerHTML = icon(playing ? 'pause' : 'play');
