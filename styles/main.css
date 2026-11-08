@@ -373,8 +373,6 @@ dialog::backdrop { background: rgb(20 12 4 / 0.4); }
   background: var(--bg);
   border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
 }
-.sheet[open] .sheet-panel { animation: sheet-up 200ms ease-out; }
-@keyframes sheet-up { from { transform: translateY(100%); } }
 
 .sheet-title {
   margin: 4px 0 8px;
@@ -429,8 +427,6 @@ dialog::backdrop { background: rgb(20 12 4 / 0.4); }
 .sheet-cancel { justify-content: center; margin: 4px 0 0; background: var(--card-2); font-weight: 600; }
 
 .modal { width: min(320px, calc(100% - 32px)); margin: auto; }
-.modal[open] .modal-panel { animation: modal-in 200ms ease-out; }
-@keyframes modal-in { from { opacity: 0; transform: scale(0.96); } }
 .modal-panel {
   padding: 20px 16px 16px;
   background: var(--bg);
@@ -496,7 +492,6 @@ dialog::backdrop { background: rgb(20 12 4 / 0.4); }
   overflow: hidden; /* 滑入动画期间不要出现滚动条 */
 }
 .now-playing::backdrop { background: var(--bg); }
-.now-playing[open] .np-panel { animation: sheet-up 250ms ease-out; }
 
 /*
  * 背景：从封面主色调渐变到奶油色。

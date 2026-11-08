@@ -47,6 +47,23 @@ export function coverHTML(id, { cover = null, coverSongId = id, small = false, s
   return `<span class="${cls}" data-tone="${toneFor(id)}">${inner}</span>`;
 }
 
+/**
+ * 弹窗出现时的动画。要在 showModal() 之后「立刻」调用（同一段代码里，中间不要 await）。
+ *
+ * 为什么不用 CSS 动画：CSS 动画挂在 [open] 状态上时，iPhone 的 Safari 会先把弹窗在
+ * 最终位置画一帧，下一帧才开始动画，看起来就是「出现 → 消失 → 再滑上来」。
+ * 用 JavaScript 的 element.animate() 在打开的同时启动，第一帧就是动画的起点。
+ */
+export function animateIn(el, kind) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const presets = {
+    slideUp: { keyframes: [{ transform: 'translateY(100%)' }, { transform: 'none' }], duration: 220 },
+    pop: { keyframes: [{ opacity: 0, transform: 'scale(0.96)' }, { opacity: 1, transform: 'none' }], duration: 180 },
+  };
+  const { keyframes, duration } = presets[kind];
+  el.animate(keyframes, { duration, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', fill: 'backwards' });
+}
+
 let toastTimer;
 let toastEl = null;
 /**

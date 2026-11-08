@@ -2,7 +2,7 @@
 // 点底部播放条打开，点左上角的 ⌄ 或按 Esc 关闭。
 // 背景颜色跟随封面的主色调变化（见 cover-color.js）。
 import { icon } from './icons.js';
-import { coverHTML, toast } from './ui.js';
+import { animateIn, coverHTML, toast } from './ui.js';
 import { MODE_LABELS, cycleMode, getState, next, prev, toggle } from './player.js';
 import { mountProgress, progressHTML } from './progress.js';
 import { coverHue } from './cover-color.js';
@@ -105,4 +105,5 @@ export function openNowPlaying() {
   if (!getState().song) return;
   if (!dialog) build();
   dialog.showModal();
+  animateIn(dialog.querySelector('.np-panel'), 'slideUp');
 }

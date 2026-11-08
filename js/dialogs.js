@@ -2,7 +2,7 @@
 // 都基于浏览器自带的 <dialog> 元素，每个函数返回一个 Promise，
 // 所以页面里可以这样写：const name = await promptDialog({ ... });
 import { icon } from './icons.js';
-import { coverHTML, escapeHTML, formatDuration } from './ui.js';
+import { animateIn, coverHTML, escapeHTML, formatDuration } from './ui.js';
 
 /**
  * 打开一个 <dialog>，关闭时 resolve(returnValue)。
@@ -24,6 +24,8 @@ function open(className, html, setup) {
     });
     setup?.(dialog);
     dialog.showModal(); // showModal 会自动把焦点放到第一个输入框或按钮上
+    const panel = dialog.querySelector('.sheet-panel, .modal-panel');
+    animateIn(panel, className === 'sheet' ? 'slideUp' : 'pop');
   });
 }
 
