@@ -41,6 +41,11 @@ export function setupMediaSession() {
       shownKey = key;
       await updateMetadata(song);
     }
+    if (!song && shownKey) {
+      // 没有歌了（比如正在播放的歌被删除、队列空了）：锁屏界面不再显示
+      shownKey = null;
+      navigator.mediaSession.metadata = null;
+    }
     navigator.mediaSession.playbackState = !state.song ? 'none' : state.playing ? 'playing' : 'paused';
     updatePosition(state);
   });

@@ -1,9 +1,9 @@
 // 单首歌的「⋯」菜单：添加到歌单、编辑歌曲信息、替换音频文件、（在歌单里时）从歌单移除。
 // 歌曲库和歌单详情页共用。
-import { removeSongFromPlaylist, replaceSongAudio, updateSong } from './db.js';
-import { actionSheet, formDialog } from './dialogs.js';
+import { deleteSong, getAllPlaylists, removeSongFromPlaylist, replaceSongAudio, updateSong } from './db.js';
+import { actionSheet, confirmDialog, formDialog } from './dialogs.js';
 import { pickFiles, readAudioFile, reasonFor } from './importer.js';
-import { refreshSong } from './player.js';
+import { refreshSong, removeSong } from './player.js';
 import { addToPlaylistFlow } from './playlist-actions.js';
 import { toast } from './ui.js';
 
@@ -25,6 +25,7 @@ export async function songMenu(song, { playlist = null } = {}) {
     },
   ];
   if (playlist) actions.push({ value: 'remove', label: '从歌单中移除', icon: 'remove', danger: true });
+  actions.push({ value: 'delete', label: '从歌曲库删除', icon: 'trash', danger: true });
 
   const choice = await actionSheet({ title: '歌曲操作', subtitle: song.title, actions });
 
@@ -42,7 +43,27 @@ export async function songMenu(song, { playlist = null } = {}) {
       await removeSongFromPlaylist(playlist.id, song.id);
       toast('已从歌单中移除');
       break;
+    case 'delete':
+      await deleteSongFlow(song);
+      break;
   }
+}
+
+/** 从歌曲库删除：要先确认，并告诉用户会影响几个歌单 */
+async function deleteSongFlow(song) {
+  const inPlaylists = (await getAllPlaylists()).filter((p) => p.songIds.includes(song.id));
+  const where = inPlaylists.length ? `，也会从 ${inPlaylists.length} 个歌单里移除` : '';
+  const ok = await confirmDialog({
+    title: `删除「${song.title}」？`,
+    message: `歌曲会从这台手机上删除${where}。删除后无法恢复（除非你有备份）。`,
+    confirmLabel: '删除',
+    danger: true,
+  });
+  if (!ok) return;
+  await deleteSong(song.id);
+  removeSong(song.id);
+  window.dispatchEvent(new CustomEvent('cover:change', { detail: { songId: song.id } })); // 释放这首歌的封面缓存
+  toast('已删除');
 }
 
 /** 修改歌名、歌手、专辑。只改应用里保存的信息，不会改动原来的音乐文件 */

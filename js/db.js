@@ -111,6 +111,25 @@ export async function replaceSongAudio(id, audioBlob, patch) {
   return updated;
 }
 
+/**
+ * 从歌曲库删除一首歌：歌曲信息、音频文件一起删，并从所有歌单里移除。
+ * 三张表在同一个事务里修改，不会出现「歌删了但歌单里还留着」的情况。
+ */
+export async function deleteSong(id) {
+  const db = await openDB();
+  const tx = db.transaction(['songs', 'audio', 'playlists'], 'readwrite');
+  tx.objectStore('songs').delete(id);
+  tx.objectStore('audio').delete(id);
+  const playlists = tx.objectStore('playlists');
+  for (const p of await result(playlists.getAll())) {
+    if (p.songIds.includes(id)) {
+      playlists.put({ ...p, songIds: p.songIds.filter((s) => s !== id), updatedAt: Date.now() });
+    }
+  }
+  await finished(tx);
+  notifyChange();
+}
+
 /** 读取一首歌的音频文件（播放时用） */
 export async function getAudio(id) {
   const db = await openDB();

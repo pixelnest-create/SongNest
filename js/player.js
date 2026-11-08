@@ -240,6 +240,60 @@ export function refreshSong(updated, { audioChanged = false } = {}) {
   if (isCurrent) emit();
 }
 
+/**
+ * 一首歌被删除后调用：从播放队列里去掉它。
+ * 正在播放的就是这首 → 接着放队列里的下一首；队列空了 → 回到「未在播放」。
+ */
+export function removeSong(id) {
+  const removed = queue.findIndex((s) => s.id === id);
+  if (removed === -1) return;
+  const wasCurrent = currentSong()?.id === id;
+  const wasPlaying = getState().playing;
+
+  if (prefetched?.id === id) {
+    URL.revokeObjectURL(prefetched.url);
+    prefetched = null;
+  }
+
+  // 去掉这首；order 里比它大的下标都要减 1；如果它在当前位置之前，当前位置也往前挪一格
+  const removedAt = order.indexOf(removed);
+  queue.splice(removed, 1);
+  order = order.filter((i) => i !== removed).map((i) => (i > removed ? i - 1 : i));
+  if (removedAt < pos) pos--;
+
+  if (!queue.length) {
+    stopAndClear();
+    return;
+  }
+  if (wasCurrent) {
+    if (pos >= order.length) pos = 0; // 删的是最后一首：回到第一首
+    load(wasPlaying);
+  } else {
+    saveSession();
+    emit();
+  }
+}
+
+/** 清空播放器：停止播放、清空队列、忘掉上次的播放记录 */
+function stopAndClear() {
+  loadToken++; // 作废正在进行的加载
+  loading = false;
+  pendingSeek = null;
+  audio.pause();
+  audio.removeAttribute('src');
+  audio.load();
+  if (objectURL) URL.revokeObjectURL(objectURL);
+  objectURL = null;
+  queue = [];
+  order = [];
+  pos = -1;
+  try {
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(POSITION_KEY);
+  } catch { /* 忽略 */ }
+  emit();
+}
+
 /** 切换到下一种播放模式，返回新模式 */
 export function cycleMode() {
   const nextMode = MODES[(MODES.indexOf(mode) + 1) % MODES.length];
