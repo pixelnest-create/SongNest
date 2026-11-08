@@ -262,7 +262,7 @@ button {
 .player-bar .icon-btn:disabled { color: var(--text-2); opacity: 0.5; cursor: default; }
 .player-bar.is-idle .row-title { color: var(--text-2); }
 
-.pb-progress {
+.progress {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -473,7 +473,100 @@ dialog::backdrop { background: rgb(20 12 4 / 0.4); }
 .icon-btn:disabled { opacity: 0.3; cursor: default; }
 .icon-btn:disabled:active { background: none; }
 
-/* ---------- 11. 减弱动态效果 ---------- */
+/* ---------- 11. 底部播放条里可点击的歌名区域 ---------- */
+.pb-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  text-align: left;
+}
+.pb-open:disabled { cursor: default; }
+
+/* ---------- 12. 全屏播放页 ---------- */
+.now-playing {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+.now-playing::backdrop { background: var(--bg); }
+.now-playing[open] .np-panel { animation: sheet-up 250ms ease-out; }
+
+.np-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 8px) 24px calc(env(safe-area-inset-bottom) + 24px);
+  background: var(--bg);
+}
+
+.np-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: calc(100% + 24px); /* 让两侧按钮的图标和下面的内容对齐 */
+  margin: 0 -12px;
+}
+.np-header .icon-btn { color: var(--text); }
+.np-position { font-size: 13px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+
+/* 大封面：在小屏幕上自动缩小，保证下面的按钮放得下 */
+.np-cover {
+  width: min(100%, 340px, 42dvh);
+  aspect-ratio: 1;
+  margin: auto 0 24px;
+}
+.cover.lg { width: 100%; height: 100%; border-radius: 10px; }
+.cover.lg .icon { width: 64px; height: 64px; }
+
+.np-info { width: 100%; text-align: center; }
+.np-title {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.np-artist { margin: 0; font-size: 15px; color: var(--text-2); }
+
+.np-progress { width: 100%; margin: 16px 0 8px; }
+
+.np-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: auto;
+}
+.np-controls .icon-btn { color: var(--text); }
+.np-controls .icon-btn:disabled { color: var(--text-2); opacity: 0.4; }
+.np-skip .icon { width: 32px; height: 32px; }
+.np-mode { color: var(--accent-text) !important; }
+
+.np-play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  transition: transform 120ms ease-out;
+}
+.np-play:active { transform: scale(0.96); }
+.np-play .icon { width: 32px; height: 32px; }
+
+/* 全屏播放页里的提示条：放在按钮上方 */
+.now-playing .toast { bottom: calc(env(safe-area-inset-bottom) + 140px); }
+
+/* ---------- 13. 减弱动态效果 ---------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     transition-duration: 0ms !important;

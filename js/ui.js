@@ -31,8 +31,8 @@ const coverURLs = new Map();
  * id 决定占位色块的颜色；coverSongId 是封面图来自哪首歌（默认就是 id）。
  * 歌单用第一首有封面的歌做封面，所以两者会不同。
  */
-export function coverHTML(id, { cover = null, coverSongId = id, small = false } = {}) {
-  const cls = small ? 'cover sm' : 'cover';
+export function coverHTML(id, { cover = null, coverSongId = id, small = false, size = small ? 'sm' : '' } = {}) {
+  const cls = size ? `cover ${size}` : 'cover';
   let inner = icon('music');
   if (cover instanceof Blob) {
     if (!coverURLs.has(coverSongId)) coverURLs.set(coverSongId, URL.createObjectURL(cover));
@@ -42,12 +42,20 @@ export function coverHTML(id, { cover = null, coverSongId = id, small = false } 
 }
 
 let toastTimer;
+let toastEl = null;
 /**
  * 在屏幕下方弹出一条提示。
  * sticky: true 时一直显示，直到下一条提示替换它。
  */
 export function toast(message, { duration = 2500, sticky = false } = {}) {
-  const el = document.getElementById('toast');
+  // 记住提示条元素本身：它可能被临时放进某个弹窗里，弹窗关闭删除后，
+  // 用 getElementById 就找不到它了，但这个变量还指着它
+  toastEl ??= document.getElementById('toast');
+  const el = toastEl;
+  // 弹窗（<dialog>）显示在最上层，会盖住页面上的提示条。
+  // 所以有弹窗打开时，把提示条临时放进弹窗里。
+  const host = [...document.querySelectorAll('dialog[open]')].pop() ?? document.body;
+  if (el.parentElement !== host) host.append(el);
   el.textContent = message;
   el.classList.add('is-visible');
   clearTimeout(toastTimer);

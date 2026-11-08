@@ -6,7 +6,7 @@ import {
   moveSongInPlaylist, removeSongFromPlaylist, renamePlaylist,
 } from '../db.js';
 import { actionSheet, confirmDialog, pickSongs, promptDialog } from '../dialogs.js';
-import { getState, playQueue, toggle } from '../player.js';
+import { getState, playQueue, playShuffled, toggle } from '../player.js';
 
 // 正在「调整顺序」的歌单 id。离开页面时自动退出这个模式。
 let editingId = null;
@@ -48,7 +48,7 @@ export async function renderPlaylistDetail(container, { id }) {
         playQueue(songs, 0);
         break;
       case 'shuffle':
-        playQueue(shuffled(songs), 0);
+        playShuffled(songs); // 切换到随机模式并开始播放
         break;
       case 'play': {
         const song = songs[index];
@@ -221,14 +221,4 @@ function totalTime(songs) {
   if (!seconds) return '';
   const minutes = Math.round(seconds / 60);
   return minutes >= 60 ? ` · ${Math.floor(minutes / 60)} 小时 ${minutes % 60} 分钟` : ` · ${minutes} 分钟`;
-}
-
-/** 洗牌算法（Fisher–Yates）：返回打乱顺序的新数组 */
-function shuffled(list) {
-  const a = [...list];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
 }
