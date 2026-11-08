@@ -6,7 +6,8 @@ import {
   moveSongInPlaylist, removeSongFromPlaylist, renamePlaylist,
 } from '../db.js';
 import { actionSheet, confirmDialog, pickSongs, promptDialog } from '../dialogs.js';
-import { getState, playQueue, playShuffled, toggle } from '../player.js';
+import { getState, playQueue, playShuffled } from '../player.js';
+import { openNowPlaying } from '../now-playing.js';
 
 // 正在「调整顺序」的歌单 id。离开页面时自动退出这个模式。
 let editingId = null;
@@ -51,9 +52,10 @@ export async function renderPlaylistDetail(container, { id }) {
         playShuffled(songs); // 切换到随机模式并开始播放
         break;
       case 'play': {
+        // 和歌曲库一样：播放这首并打开全屏播放页；点正在播放的歌只打开播放页
         const song = songs[index];
-        if (getState().song?.id === song.id) toggle();
-        else playQueue(songs, index);
+        if (getState().song?.id !== song.id) playQueue(songs, index);
+        openNowPlaying();
         break;
       }
       case 'add':

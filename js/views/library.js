@@ -4,7 +4,8 @@ import { coverHTML, escapeHTML, formatDuration } from '../ui.js';
 import { addToPlaylistFlow } from '../playlist-actions.js';
 import { getAllSongs } from '../db.js';
 import { pickAndImport } from '../importer.js';
-import { getState, playQueue, toggle } from '../player.js';
+import { getState, playQueue } from '../player.js';
+import { openNowPlaying } from '../now-playing.js';
 import { dismissHint, hintHTML } from '../install-hint.js';
 
 export async function renderLibrary(container) {
@@ -30,10 +31,11 @@ export async function renderLibrary(container) {
         target.closest('.hint').remove();
         break;
       case 'play': {
-        // 点的是正在播放的歌 → 暂停/继续；否则把整个歌曲库作为队列，从这首开始播
+        // 把整个歌曲库作为队列，从这首开始播，并打开全屏播放页。
+        // 点的是正在播放的歌 → 只打开播放页，不从头播
         const id = target.dataset.id;
-        if (getState().song?.id === id) toggle();
-        else playQueue(songs, songs.findIndex((s) => s.id === id));
+        if (getState().song?.id !== id) playQueue(songs, songs.findIndex((s) => s.id === id));
+        openNowPlaying();
         break;
       }
       case 'more': {
