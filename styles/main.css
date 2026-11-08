@@ -227,6 +227,25 @@ button {
 
 .actions { display: flex; gap: 8px; margin: 4px 0 16px; }
 
+/* ---------- 6.5 搜索框 ---------- */
+.search { position: relative; margin: 0 0 12px; }
+.search > .icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  transform: translateY(-50%);
+  color: var(--text-2);
+  pointer-events: none;
+}
+.search .field { padding: 0 44px 0 38px; -webkit-appearance: none; appearance: none; }
+.search .field::-webkit-search-cancel-button { display: none; } /* 用我们自己的清除按钮，样式统一 */
+.search-clear { position: absolute; right: 0; top: 0; display: none; }
+.search-clear .icon { width: 18px; height: 18px; }
+.search.has-text .search-clear { display: inline-flex; }
+.search + [data-role="results"] .page-subtitle { margin-top: 0; }
+
 /* ---------- 7. 空状态 ---------- */
 .empty {
   display: flex;
