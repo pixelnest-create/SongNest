@@ -535,12 +535,16 @@ dialog::backdrop { background: rgb(20 12 4 / 0.4); }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: calc(100% + 24px); /* 让两侧按钮的图标和下面的内容对齐 */
-  max-width: 504px;
-  margin: 0 auto;
-  align-self: center;
+  /*
+   * 左右各向外伸出 12px，让两侧按钮里的图标和下面的封面对齐。
+   * 用负边距 + 自动宽度，而不是「宽度 +24px 再自动居中」：
+   * 元素比容器宽时，margin: auto 会失效变成靠左，整行就偏了。
+   */
+  margin: 0 -12px;
 }
 .np-header .icon-btn { color: var(--text); }
+/* 看不见的「取色器」：用来读出 --np-top 实际是什么颜色，设给状态栏 */
+.np-theme-probe { display: none; color: var(--np-top); }
 .np-label { font-size: 13px; color: var(--np-text-2); }
 
 /* 内容区：在高屏幕上整体垂直居中，宽屏上限制宽度 */
