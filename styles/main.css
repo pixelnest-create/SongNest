@@ -60,6 +60,8 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 html, body { margin: 0; }
+/* html 也要有背景色：新版 Safari 会取它来给顶部状态栏、页面回弹露出的区域上色 */
+html { background: var(--bg); }
 
 body {
   min-height: 100dvh;

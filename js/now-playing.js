@@ -114,8 +114,11 @@ export function openNowPlaying() {
 }
 
 // ---------- 状态栏颜色 ----------
-// iPhone 顶部显示时间、电量的那一条，颜色由 <meta name="theme-color"> 决定（平时是奶油色）。
-// 播放页的背景是封面色渐变，顶部要跟着换成同样的颜色，不然会像一道白边。
+// iPhone 顶部显示时间、电量的那一条，平时是奶油色。播放页的背景是封面色渐变，
+// 顶部要跟着换成同样的颜色，不然会像一道白边。不同版本的 Safari 取色方式不同：
+//   - 旧版本：读 <meta name="theme-color">
+//   - 新版本：不再读 theme-color，而是取页面（html / body）的背景色
+// 所以两个都改。
 
 const themeMetas = [...document.querySelectorAll('meta[name="theme-color"]')];
 const originalThemes = themeMetas.map((m) => m.content);
@@ -123,6 +126,9 @@ const originalThemes = themeMetas.map((m) => m.content);
 /** color 为 null 时恢复原来的颜色 */
 function setThemeColor(color) {
   themeMetas.forEach((meta, i) => { meta.content = color ?? originalThemes[i]; });
+  for (const el of [document.documentElement, document.body]) {
+    el.style.backgroundColor = color ?? ''; // 空字符串 = 去掉临时设置，回到 CSS 里的 var(--bg)
+  }
 }
 
 /** 读出播放页顶部的实际颜色（CSS 变量算出来的结果），设为状态栏颜色 */
