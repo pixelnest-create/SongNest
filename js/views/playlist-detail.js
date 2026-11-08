@@ -6,7 +6,7 @@ import {
   moveSongInPlaylist, removeSongFromPlaylist, renamePlaylist,
 } from '../db.js';
 import { actionSheet, confirmDialog, pickSongs, promptDialog } from '../dialogs.js';
-import { getState, playQueue, playShuffled } from '../player.js';
+import { getState, playQueue } from '../player.js';
 import { openNowPlaying } from '../now-playing.js';
 
 // 正在「调整顺序」的歌单 id。离开页面时自动退出这个模式。
@@ -47,10 +47,6 @@ export async function renderPlaylistDetail(container, { id }) {
     switch (target.dataset.action) {
       case 'play-all':
         playQueue(songs, 0);
-        openNowPlaying();
-        break;
-      case 'shuffle':
-        playShuffled(songs); // 切换到随机模式并开始播放
         openNowPlaying();
         break;
       case 'play': {
@@ -164,7 +160,6 @@ function actionsHTML(count) {
   return `
     <div class="actions">
       <button class="btn btn-accent" data-action="play-all">${icon('play')}播放</button>
-      <button class="btn btn-soft" data-action="shuffle">${icon('shuffle')}随机</button>
       <button class="btn btn-soft" data-action="add">${icon('plus')}添加歌曲</button>
     </div>
   `;

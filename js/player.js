@@ -3,7 +3,7 @@
 //   'player:change'  歌曲、播放/暂停、模式等状态变了（detail 是 getState() 的结果）
 //   'player:time'    播放进度变了（每秒触发几次）
 //   'player:error'   某首歌无法播放
-import { getAudio, updateSong } from './db.js';
+import { getAudio, getSongsByIds, updateSong } from './db.js';
 
 const audio = new Audio();
 audio.preload = 'auto';
@@ -12,6 +12,8 @@ audio.preload = 'auto';
 export const MODES = ['loop', 'one', 'shuffle', 'order'];
 export const MODE_LABELS = { loop: '列表循环', one: '单曲循环', shuffle: '随机播放', order: '顺序播放' };
 const MODE_KEY = 'songnest.mode';
+const SESSION_KEY = 'songnest.session';   // 上次的播放队列和当前歌曲
+const POSITION_KEY = 'songnest.position'; // 上次播到第几秒
 
 // 队列的两层结构：
 //   queue  —— 歌曲本身，保持用户看到的顺序（歌曲库或歌单的顺序）
@@ -28,6 +30,7 @@ let loadToken = 0;    // 用来丢弃过期的加载（用户连续快速点了�
 let prefetched = null; // 提前读好的下一首：{ id, url }
 let loading = false;  // 正在从数据库读取新歌
 let wantPlay = false; // 读完之后要不要自动播放（读取期间用户可能按了暂停）
+let pendingSeek = null; // 音频还没加载时要跳到的位置（恢复上次进度时用），加载好后再真正跳过去
 let unlocked = false;
 
 // ---------- 对外接口 ----------
@@ -43,7 +46,7 @@ export function getState() {
     song,
     // 读取新歌期间，按「用户想不想播放」显示，避免播放按钮闪一下
     playing: Boolean(song) && (loading ? wantPlay : !audio.paused),
-    currentTime: song ? audio.currentTime || 0 : 0,
+    currentTime: song ? pendingSeek ?? (audio.currentTime || 0) : 0,
     duration: song ? (Number.isFinite(audio.duration) ? audio.duration : song.duration ?? 0) : 0,
     mode,
     // 只有「顺序播放」到了最后一首时，才没有下一首
@@ -62,12 +65,6 @@ export function playQueue(songs, start = 0) {
   queue = [...songs];
   buildOrder(start);
   return load(true);
-}
-
-/** 切换到随机模式，并从随机的一首开始播放（歌单页的「随机」按钮） */
-export function playShuffled(songs) {
-  setMode('shuffle', { silent: true });
-  return playQueue(songs, Math.floor(Math.random() * songs.length));
 }
 
 /** 播放 / 暂停 */
@@ -130,8 +127,8 @@ export function prev() {
   unlock();
 
   if (loading) return; // 新歌还没读完，忽略
-  if (audio.currentTime > 3 || order.length === 1) {
-    audio.currentTime = 0;
+  if (getState().currentTime > 3 || order.length === 1) {
+    seek(0);
     if (audio.paused) audio.play().catch(reportError);
     return;
   }
@@ -140,7 +137,7 @@ export function prev() {
   } else if (mode === 'loop' || mode === 'one') {
     pos = order.length - 1; // 第一首再往前，绕到最后一首
   } else {
-    audio.currentTime = 0; // 随机、顺序模式下没有「更前面」了，回到开头
+    seek(0); // 随机、顺序模式下没有「更前面」了，回到开头
     return;
   }
   return load(true);
@@ -148,7 +145,80 @@ export function prev() {
 
 /** 跳到第 seconds 秒 */
 export function seek(seconds) {
-  if (currentSong() && Number.isFinite(seconds)) audio.currentTime = seconds;
+  if (!currentSong() || !Number.isFinite(seconds)) return;
+  if (audio.readyState >= 1) {
+    pendingSeek = null;
+    audio.currentTime = seconds;
+  } else {
+    // 音频还没加载（比如刚恢复上次的歌、还没按播放）：先记下来，加载好再跳
+    pendingSeek = seconds;
+    window.dispatchEvent(new CustomEvent('player:time', { detail: getState() }));
+  }
+}
+
+// ---------- 记住和恢复上次的播放 ----------
+
+function writeJSON(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* 存不了就算了 */ }
+}
+function readJSON(key) {
+  try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
+}
+
+/** 记住播放队列和当前歌曲（换歌、切换模式时调用） */
+function saveSession() {
+  const song = currentSong();
+  if (!song) return;
+  writeJSON(SESSION_KEY, {
+    queueIds: queue.map((s) => s.id),
+    // 随机模式下还要记住打乱后的顺序，否则恢复后「下一首」会变
+    orderIds: mode === 'shuffle' ? order.map((i) => queue[i].id) : null,
+    currentId: song.id,
+  });
+}
+
+/** 记住播到第几秒（播放中每 5 秒一次，以及暂停、离开应用时） */
+let lastPositionSave = 0;
+function savePosition() {
+  const song = currentSong();
+  if (!song || loading) return;
+  lastPositionSave = Date.now();
+  writeJSON(POSITION_KEY, { id: song.id, time: getState().currentTime });
+}
+
+/**
+ * 应用启动时调用：恢复上次的播放队列、当前歌曲和进度，但不自动播放
+ * （iOS 和浏览器都不允许网页没经过用户点击就出声）。
+ */
+export async function restoreSession() {
+  const saved = readJSON(SESSION_KEY);
+  if (!saved?.queueIds?.length || queue.length) return;
+
+  // 已经被删除的歌会被自动跳过
+  const songs = await getSongsByIds(saved.queueIds);
+  if (!songs.length || queue.length) return; // 读取期间用户已经点了别的歌
+
+  queue = songs;
+  const indexOf = new Map(songs.map((s, i) => [s.id, i]));
+  if (mode === 'shuffle' && saved.orderIds) {
+    const restored = saved.orderIds.map((id) => indexOf.get(id)).filter((i) => i !== undefined);
+    const missing = songs.map((_, i) => i).filter((i) => !restored.includes(i));
+    order = [...restored, ...missing];
+  } else {
+    order = songs.map((_, i) => i);
+  }
+  const current = indexOf.get(saved.currentId);
+  pos = current === undefined ? 0 : order.indexOf(current);
+
+  // 进度：只有当前歌曲没变时才恢复；快放完了就从头开始
+  const position = readJSON(POSITION_KEY);
+  const song = currentSong();
+  let time = position?.id === song.id ? Number(position.time) || 0 : 0;
+  if (song.duration && time > song.duration - 3) time = 0;
+
+  load(false);
+  pendingSeek = time > 0 ? time : null;
+  emit();
 }
 
 /** 切换到下一种播放模式，返回新模式 */
@@ -167,6 +237,7 @@ function setMode(newMode, { silent = false } = {}) {
   // 进入或离开随机模式时，重新排播放顺序，但当前这首歌保持不变
   if (queue.length && wasShuffle !== (mode === 'shuffle')) {
     buildOrder(order[pos]);
+    saveSession();
   }
   try { localStorage.setItem(MODE_KEY, mode); } catch { /* 隐私模式下可能无法保存，忽略 */ }
   if (!silent) emit();
@@ -229,8 +300,10 @@ async function load(autoplay) {
   const song = currentSong();
   loading = true;
   wantPlay = autoplay;
+  pendingSeek = null;
   // 换歌时旧歌立刻停下。但不要打断刚开始的「解锁静音」，那是 iOS 允许播放的关键
   if (objectURL && audio.src === objectURL) audio.pause();
+  saveSession();
   emit(); // 先让界面立刻显示新歌名，不用等文件读完
 
   let url;
@@ -276,6 +349,9 @@ async function load(autoplay) {
 function unlock() {
   if (unlocked) return;
   unlocked = true;
+  // 已经装好了一首真正的歌（比如恢复了上次的歌）：接下来对它调用 play() 本身就能解锁，
+  // 不要用静音把它换掉
+  if (objectURL && audio.src === objectURL) return;
   const silence = silentWavURL();
   audio.src = silence;
   audio.play().then(() => {
@@ -317,6 +393,15 @@ audio.addEventListener('playing', () => {
 
 audio.addEventListener('timeupdate', () => {
   window.dispatchEvent(new CustomEvent('player:time', { detail: getState() }));
+  if (!audio.paused && Date.now() - lastPositionSave > 5000) savePosition();
+});
+
+// 暂停、拖动进度、离开应用（切到后台、关闭）时，立刻记住进度
+audio.addEventListener('pause', savePosition);
+audio.addEventListener('seeked', savePosition);
+window.addEventListener('pagehide', savePosition);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') savePosition();
 });
 
 // 一首自然放完（单曲循环时 audio.loop 为 true，不会触发这个事件）
@@ -324,6 +409,11 @@ audio.addEventListener('ended', () => next(true));
 
 // 导入时没算出时长（或算得不准）的歌，播放时用浏览器给出的真实时长补上
 audio.addEventListener('loadedmetadata', () => {
+  // 恢复上次的进度：音频加载好了，现在可以真正跳过去
+  if (pendingSeek != null && audio.src === objectURL) {
+    audio.currentTime = pendingSeek;
+    pendingSeek = null;
+  }
   const song = currentSong();
   const real = audio.duration;
   if (!song || !Number.isFinite(real)) return;
