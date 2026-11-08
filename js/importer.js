@@ -25,11 +25,11 @@ let importing = false;
  * 必须在点击事件里直接调用，否则 iOS 不会弹出选择器。
  * 用户取消时，返回的 Promise 可能永远不会完成（有的浏览器不通知「取消」），这不影响使用。
  */
-export function pickFiles({ multiple = true } = {}) {
+export function pickFiles({ multiple = true, accept = ACCEPT } = {}) {
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = ACCEPT;
+    if (accept) input.accept = accept; // 传空字符串 = 不限制文件类型（选备份文件时用）
     input.multiple = multiple;
     input.hidden = true;
     const done = () => {

@@ -15,6 +15,19 @@ export function formatDuration(seconds) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
+/** 1536000 → "1.5 MB" */
+export function formatBytes(bytes) {
+  if (!Number.isFinite(bytes) || bytes < 0) return '未知';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+  return `${value >= 100 || unit === 0 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
+}
+
 /** 根据 id 算出 1~3 中的一个数字，同一首歌每次得到的占位颜色都一样 */
 export function toneFor(id) {
   let hash = 0;

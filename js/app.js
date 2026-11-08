@@ -8,6 +8,7 @@ import { setupMediaSession } from './media-session.js';
 import { renderLibrary } from './views/library.js';
 import { renderPlaylists } from './views/playlists.js';
 import { renderPlaylistDetail } from './views/playlist-detail.js';
+import { renderMore } from './views/more.js';
 
 const view = document.getElementById('view');
 
@@ -15,6 +16,7 @@ const view = document.getElementById('view');
 const tabs = {
   library: { label: '歌曲库', icon: 'music' },
   playlists: { label: '歌单', icon: 'playlist' },
+  more: { label: '更多', icon: 'dots' },
 };
 for (const el of document.querySelectorAll('.tab')) {
   const t = tabs[el.dataset.tab];
@@ -86,6 +88,7 @@ const router = startRouter(
     '/library': page('library', renderLibrary),
     '/playlists': page('playlists', renderPlaylists),
     '/playlist/:id': page('playlists', renderPlaylistDetail),
+    '/more': page('more', renderMore),
   },
   '/library',
 );

@@ -222,6 +222,67 @@ export function moveSongInPlaylist(id, from, to) {
   });
 }
 
+// ---------- 备份与恢复 ----------
+
+/** 取出备份需要的全部数据：歌曲（带音频）和歌单。音频是 Blob，不会一次全读进内存 */
+export async function getEverythingForBackup() {
+  const songs = await getAllSongs();
+  const withAudio = [];
+  for (const song of songs) withAudio.push({ ...song, audio: await getAudio(song.id) });
+  return { songs: withAudio, playlists: await getAllPlaylists() };
+}
+
+/**
+ * 从备份恢复：已经有的歌（同一个 id，或者同一个文件）跳过，没有的加进来；
+ * 歌单按 id 合并：已有的歌单补上缺的歌，没有的歌单整个加进来。
+ * onProgress(done, total) 用来显示进度。返回 { added, skipped, playlistsAdded, playlistsMerged }
+ */
+export async function restoreFromBackup({ songs, playlists }, onProgress = () => {}) {
+  const db = await openDB();
+  const summary = { added: 0, skipped: 0, playlistsAdded: 0, playlistsMerged: 0 };
+  const idMap = new Map(); // 备份里的歌曲 id → 歌曲库里实际的 id（同一个文件已经以别的 id 存在时会不同）
+
+  for (const [i, { audio, ...song }] of songs.entries()) {
+    onProgress(i, songs.length);
+    const [existing] = await getSongsByIds([song.id]);
+    const sameFile = existing ? null : await result(db.transaction('songs').objectStore('songs').index('fileKey').get(song.fileKey));
+    if (existing || sameFile) {
+      idMap.set(song.id, (existing ?? sameFile).id);
+      summary.skipped++;
+      continue;
+    }
+    if (!audio) continue;
+    // 先把音频从备份文件里读出来，再写入数据库。
+    // （IndexedDB 存「文件切片」在部分浏览器上不可靠，存一份独立的 Blob 最稳）
+    const blob = new Blob([await audio.arrayBuffer()], { type: audio.type || song.mimeType });
+    const cover = song.cover ? new Blob([await song.cover.arrayBuffer()], { type: song.cover.type }) : null;
+    await addSong({ ...song, cover }, blob);
+    idMap.set(song.id, song.id);
+    summary.added++;
+  }
+  onProgress(songs.length, songs.length);
+
+  for (const p of playlists) {
+    const songIds = [...new Set(p.songIds.map((id) => idMap.get(id)).filter(Boolean))];
+    const current = await getPlaylist(p.id);
+    if (current) {
+      const missing = songIds.filter((id) => !current.songIds.includes(id));
+      if (missing.length) {
+        await updatePlaylist(p.id, (old) => ({ ...old, songIds: [...old.songIds, ...missing] }));
+        summary.playlistsMerged++;
+      }
+    } else {
+      const tx = db.transaction('playlists', 'readwrite');
+      tx.objectStore('playlists').add({ ...p, songIds });
+      await finished(tx);
+      summary.playlistsAdded++;
+    }
+  }
+
+  notifyChange();
+  return summary;
+}
+
 /** 删除歌单（歌曲本身不会被删除） */
 export async function deletePlaylist(id) {
   const db = await openDB();

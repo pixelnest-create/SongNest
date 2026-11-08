@@ -246,6 +246,20 @@ button {
 .search.has-text .search-clear { display: inline-flex; }
 .search + [data-role="results"] .page-subtitle { margin-top: 0; }
 
+/* ---------- 6.6 卡片（「更多」页面） ---------- */
+.card {
+  margin: 0 0 12px;
+  padding: 16px;
+  background: var(--card);
+  border-radius: var(--radius-card);
+}
+.card-title { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
+.card-stat { margin: 0 0 2px; font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.card-text { margin: 0; font-size: 13px; color: var(--text-2); }
+.card-note { margin-top: 10px; }
+.card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.btn:disabled { opacity: 0.5; cursor: default; transform: none; }
+
 /* ---------- 7. 空状态 ---------- */
 .empty {
   display: flex;
@@ -333,7 +347,7 @@ button {
 
 .tab-bar {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   max-width: 616px;
   margin: 0 auto;
 }
