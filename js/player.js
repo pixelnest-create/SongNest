@@ -28,6 +28,10 @@ let mode = loadMode();
 let objectURL = null; // 当前歌曲的临时网址，换歌时要释放
 let loadToken = 0;    // 用来丢弃过期的加载（用户连续快速点了好几首歌）
 let prefetched = null; // 提前读好的下一首：{ id, url }
+let prefetching = null; // 正在提前读取的那首歌的 id（避免重复读取）
+let silenceURL = null;  // 一段静音的网址，第一次用到时才生成
+let pausedAt = 0;       // 什么时候暂停的（判断是不是「暂停了很久」）
+const STALE_PAUSE_MS = 5 * 60 * 1000; // 暂停超过 5 分钟，继续播放前先重新装一次歌
 let loading = false;  // 正在从数据库读取新歌
 let wantPlay = false; // 读完之后要不要自动播放（读取期间用户可能按了暂停）
 let pendingSeek = null; // 音频还没加载时要跳到的位置（恢复上次进度时用），加载好后再真正跳过去
@@ -46,8 +50,15 @@ export function getState() {
     song,
     // 读取新歌期间，按「用户想不想播放」显示，避免播放按钮闪一下
     playing: Boolean(song) && (loading ? wantPlay : !audio.paused),
-    currentTime: song ? pendingSeek ?? (audio.currentTime || 0) : 0,
-    duration: song ? (Number.isFinite(audio.duration) ? audio.duration : song.duration ?? 0) : 0,
+    // 只有 <audio> 里装的正是当前这首歌时，才用它的进度和时长（等待期间可能在播静音）
+    // 「待跳转位置」只在音频还没加载时显示；音频已经能用了，就以它的真实进度为准
+    currentTime: !song ? 0
+      : pendingSeek != null && audio.readyState < 1 ? pendingSeek
+      : audio.src === objectURL ? audio.currentTime || 0
+      : pendingSeek ?? 0,
+    duration: song
+      ? (audio.src === objectURL && Number.isFinite(audio.duration) ? audio.duration : song.duration ?? 0)
+      : 0,
     mode,
     // 只有「顺序播放」到了最后一首时，才没有下一首
     hasNext: Boolean(song) && (mode !== 'order' || pos < order.length - 1),
@@ -83,7 +94,16 @@ export function play() {
     emit();
     return;
   }
-  if (audio.paused) audio.play().catch(reportError);
+  if (!audio.paused) return;
+  // 暂停了很久：iPhone 可能已经在后台悄悄释放了这首歌，<audio> 只剩个空壳
+  // （表现为：声音从头开始，进度条却卡在中间不动、拖动也没用）。
+  // 所以重新装一次这首歌，再跳回暂停时的位置
+  if (pausedAt && Date.now() - pausedAt > STALE_PAUSE_MS && objectURL && audio.src === objectURL) {
+    reloadAt(pendingSeek ?? audio.currentTime);
+    return;
+  }
+  applyPendingSeek();
+  audio.play().catch(reportError);
 }
 
 /** 暂停 */
@@ -104,6 +124,7 @@ export function pause() {
 export function next(auto = false) {
   if (!currentSong()) return;
   if (!auto) unlock();
+  const before = currentSong();
 
   if (pos < order.length - 1) {
     pos++;
@@ -117,6 +138,13 @@ export function next(auto = false) {
     pos = 0;
   } else {
     pos = 0; // 列表循环、单曲循环：回到第一首
+  }
+  // 下一首还是同一首歌（队列里只有一首）：直接从头再放，不用重新从数据库读
+  if (currentSong() === before && !loading && objectURL && audio.src === objectURL) {
+    saveSession();
+    audio.currentTime = 0;
+    audio.play().catch(reportError);
+    return;
   }
   return load(true);
 }
@@ -360,8 +388,10 @@ function peekNextSong() {
 /** 提前把下一首的音频文件从数据库读出来，准备好网址 */
 async function prefetchNext() {
   const song = peekNextSong();
-  if (!song || prefetched?.id === song.id || song.id === currentSong()?.id) return;
+  if (!song || prefetched?.id === song.id || prefetching === song.id || song.id === currentSong()?.id) return;
+  prefetching = song.id;
   const blob = await getAudio(song.id).catch(() => null);
+  if (prefetching === song.id) prefetching = null;
   if (!blob || peekNextSong()?.id !== song.id) return; // 读完时「下一首」已经变了
   if (prefetched) URL.revokeObjectURL(prefetched.url);
   prefetched = { id: song.id, url: URL.createObjectURL(blob) };
@@ -386,10 +416,14 @@ async function load(autoplay) {
     url = prefetched.url;
     prefetched = null;
   } else {
-    const blob = await getAudio(song.id);
+    // 下一首没提前读好，要等数据库。锁屏或在别的 App 时，这段没有声音的空档
+    // 可能让 iOS 以为播放结束了、把应用挂起，于是歌就停了。先播静音把这段空档撑住
+    if (autoplay && document.visibilityState === 'hidden') playSilence();
+    const blob = await getAudio(song.id).catch(() => null);
     if (token !== loadToken) return; // 读取期间用户又换了歌，放弃这次
     if (!blob) {
       loading = false;
+      if (audio.src === silenceURL) audio.pause();
       reportError(new Error('找不到音频文件'));
       return;
     }
@@ -425,11 +459,43 @@ function unlock() {
   // 已经装好了一首真正的歌（比如恢复了上次的歌）：接下来对它调用 play() 本身就能解锁，
   // 不要用静音把它换掉
   if (objectURL && audio.src === objectURL) return;
-  const silence = silentWavURL();
+  const silence = getSilenceURL();
   audio.src = silence;
   audio.play().then(() => {
     if (audio.src === silence) audio.pause();
   }).catch(() => {});
+}
+
+/** 重新装一次当前这首歌，从第 time 秒开始播放（音频加载好后由 applyPendingSeek 跳过去） */
+function reloadAt(time) {
+  pendingSeek = Number.isFinite(time) && time > 0 ? time : null;
+  pausedAt = 0;
+  audio.src = objectURL; // 即使网址一样，重新赋值也会让 <audio> 从头加载
+  audio.loop = mode === 'one';
+  audio.play().catch((err) => {
+    if (err.name !== 'AbortError') reportError(err);
+  });
+  emit();
+}
+
+/** 音频已经能用了，就把记下的「待跳转位置」真正跳过去 */
+function applyPendingSeek() {
+  if (pendingSeek == null || audio.src !== objectURL || audio.readyState < 1) return;
+  const time = pendingSeek;
+  pendingSeek = null;
+  audio.currentTime = time;
+}
+
+/** 循环播放静音，直到换成真正的歌（load 里会重新设置 src 和 loop） */
+function playSilence() {
+  audio.src = getSilenceURL();
+  audio.loop = true;
+  audio.play().catch(() => {});
+}
+
+function getSilenceURL() {
+  if (!silenceURL) silenceURL = silentWavURL();
+  return silenceURL;
 }
 
 /** 生成一段 0.1 秒的静音 WAV */
@@ -461,12 +527,45 @@ for (const type of ['play', 'pause', 'emptied', 'seeked']) audio.addEventListene
 
 // 一首歌开始播放后，趁空闲提前读好下一首
 audio.addEventListener('playing', () => {
+  applyPendingSeek(); // 保险：万一 loadedmetadata 时没跳成功
   if (audio.src === objectURL) prefetchNext();
 });
 
+audio.addEventListener('pause', () => {
+  if (audio.src === objectURL) pausedAt = Date.now();
+});
+audio.addEventListener('play', () => { pausedAt = 0; });
+
+// 看门狗：明明在播放，进度却 3 秒都没动，说明 <audio> 卡死了（iPhone 后台久了偶尔会这样）。
+// 重新装一次这首歌，从卡住的位置接着放。30 秒内最多补救一次，避免反复重来
+let lastTime = -1;
+let lastMoveAt = 0;
+let lastRescueAt = 0;
+setInterval(() => {
+  if (audio.paused || loading || audio.seeking || !objectURL || audio.src !== objectURL) {
+    lastTime = -1;
+    return;
+  }
+  const now = Date.now();
+  if (audio.currentTime !== lastTime) {
+    lastTime = audio.currentTime;
+    lastMoveAt = now;
+    return;
+  }
+  if (now - lastMoveAt > 3000 && now - lastRescueAt > 30000) {
+    lastRescueAt = now;
+    console.warn('播放卡住了，重新加载这首歌');
+    reloadAt(pendingSeek ?? audio.currentTime);
+  }
+}, 1000);
+
 audio.addEventListener('timeupdate', () => {
+  applyPendingSeek();
   window.dispatchEvent(new CustomEvent('player:time', { detail: getState() }));
   if (!audio.paused && Date.now() - lastPositionSave > 5000) savePosition();
+  // 补救：锁屏时 'playing' 事件有时不来，或者上次提前读取失败了，播放中再检查一次。
+  // 已经读好时这里几乎不花时间
+  if (!audio.paused && !loading && audio.src === objectURL) prefetchNext();
 });
 
 // 暂停、拖动进度、离开应用（切到后台、关闭）时，立刻记住进度
@@ -482,11 +581,8 @@ audio.addEventListener('ended', () => next(true));
 
 // 导入时没算出时长（或算得不准）的歌，播放时用浏览器给出的真实时长补上
 audio.addEventListener('loadedmetadata', () => {
-  // 恢复上次的进度：音频加载好了，现在可以真正跳过去
-  if (pendingSeek != null && audio.src === objectURL) {
-    audio.currentTime = pendingSeek;
-    pendingSeek = null;
-  }
+  if (audio.src !== objectURL) return; // 加载的是静音，不是歌
+  applyPendingSeek(); // 恢复上次的进度：音频加载好了，现在可以真正跳过去
   const song = currentSong();
   const real = audio.duration;
   if (!song || !Number.isFinite(real)) return;
