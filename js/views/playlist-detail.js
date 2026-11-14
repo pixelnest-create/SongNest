@@ -1,10 +1,11 @@
 // 歌单详情页面：#/playlist/<id>
 import { icon } from '../icons.js';
-import { coverHTML, escapeHTML, formatDuration, toast } from '../ui.js';
+import { coverHTML, escapeHTML, formatDuration, playlistCoverHTML, toast } from '../ui.js';
 import {
   addSongsToPlaylist, deletePlaylist, getAllSongs, getPlaylist, getSongsByIds,
-  moveSongInPlaylist, renamePlaylist,
+  moveSongInPlaylist, renamePlaylist, setPlaylistCover,
 } from '../db.js';
+import { IMAGE_ACCEPT, pickCoverImage, pickFiles, reasonFor } from '../importer.js';
 import { actionSheet, confirmDialog, pickSongs, promptDialog } from '../dialogs.js';
 import { getState, playQueue } from '../player.js';
 import { openNowPlaying } from '../now-playing.js';
@@ -35,7 +36,10 @@ export async function renderPlaylistDetail(container, { id }) {
 
   container.innerHTML = `
     ${headerHTML(playlist.name, editing ? 'done' : 'menu')}
-    <p class="page-subtitle">${songs.length} 首${totalTime(songs)}</p>
+    <div class="pl-hero">
+      ${playlistCoverHTML(playlist, songs, { size: 'md' })}
+      <p class="page-subtitle">${songs.length} 首${totalTime(songs)}</p>
+    </div>
     ${editing ? '<p class="page-subtitle">用箭头调整顺序，完成后点右上角「完成」</p>' : actionsHTML(songs.length)}
     ${songs.length ? listHTML(songs, editing) : emptyHTML()}
   `;
@@ -64,7 +68,7 @@ export async function renderPlaylistDetail(container, { id }) {
         await songMenu(songs[index], { playlist });
         break;
       case 'menu':
-        await playlistMenu(playlist, songs.length);
+        await playlistMenu(playlist, songs);
         break;
       case 'up':
         await moveSongInPlaylist(id, index, index - 1);
@@ -101,9 +105,20 @@ async function addSongs(playlist) {
 }
 
 
-async function playlistMenu(playlist, count) {
-  const actions = [{ value: 'rename', label: '重命名', icon: 'edit' }];
-  if (count > 1) actions.push({ value: 'sort', label: '调整顺序', icon: 'sort' });
+async function playlistMenu(playlist, songs) {
+  let picking = null; // 「更换封面」：点击的瞬间就打开相册（iOS 的要求）
+  const actions = [
+    { value: 'rename', label: '重命名', icon: 'edit' },
+    {
+      value: 'cover',
+      label: '更换封面',
+      icon: 'photo',
+      onTap: () => { picking = pickFiles({ multiple: false, accept: IMAGE_ACCEPT }); },
+    },
+  ];
+  // 只有自己设置过封面时才有「恢复」：恢复后用第一首有封面的歌
+  if (playlist.cover) actions.push({ value: 'reset-cover', label: '恢复默认封面', icon: 'x' });
+  if (songs.length > 1) actions.push({ value: 'sort', label: '调整顺序', icon: 'sort' });
   actions.push({ value: 'delete', label: '删除歌单', icon: 'trash', danger: true });
 
   const choice = await actionSheet({ title: '歌单操作', subtitle: playlist.name, actions });
@@ -111,6 +126,22 @@ async function playlistMenu(playlist, count) {
   if (choice === 'rename') {
     const name = await promptDialog({ title: '重命名歌单', value: playlist.name, confirmLabel: '保存' });
     if (name && name !== playlist.name) await renamePlaylist(playlist.id, name);
+  } else if (choice === 'cover') {
+    let cover;
+    try {
+      cover = await pickCoverImage(picking);
+    } catch (err) {
+      toast(`更换失败：${reasonFor(err)}`, { duration: 4000 });
+      return;
+    }
+    if (!cover) return;
+    forgetCoverURL(playlist.id);
+    await setPlaylistCover(playlist.id, cover);
+    toast('已更换封面');
+  } else if (choice === 'reset-cover') {
+    forgetCoverURL(playlist.id);
+    await setPlaylistCover(playlist.id, null);
+    toast('已恢复默认封面');
   } else if (choice === 'sort') {
     editingId = playlist.id;
     window.dispatchEvent(new Event('library:change'));
@@ -123,10 +154,16 @@ async function playlistMenu(playlist, count) {
     });
     if (ok) {
       await deletePlaylist(playlist.id);
+      forgetCoverURL(playlist.id);
       location.hash = '#/playlists';
       toast('歌单已删除');
     }
   }
+}
+
+/** 歌单封面换了或者删了：丢掉旧图片的临时网址（见 ui.js 的 playlistCoverHTML） */
+function forgetCoverURL(playlistId) {
+  window.dispatchEvent(new CustomEvent('cover:change', { detail: { songId: `playlist:${playlistId}` } }));
 }
 
 // ---------- 页面片段 ----------

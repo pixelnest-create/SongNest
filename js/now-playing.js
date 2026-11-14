@@ -97,6 +97,10 @@ function build() {
   });
 
   mountProgress(dialog);
+  // 封面换成了另一张图（「有没有封面」没变，上面的 coverKey 看不出来）：下次一定重画
+  window.addEventListener('cover:change', (e) => {
+    if (e.detail.songId === shownSongId) shownCover = null;
+  });
   window.addEventListener('player:change', (e) => render(e.detail));
   render(getState());
 }

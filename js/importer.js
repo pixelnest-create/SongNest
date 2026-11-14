@@ -119,7 +119,7 @@ export async function readAudioFile(file) {
     artist: meta.artist,
     album: meta.album,
     duration: meta.duration ?? (await durationFromAudio(blob)),
-    cover: meta.cover ? await makeThumbnail(meta.cover) : null,
+    cover: meta.cover ? await makeThumbnail(new Blob([meta.cover.data], { type: meta.cover.mime })) : null,
     fileName: file.name,
     fileSize: file.size,
     fileKey: fileKeyOf(file),
@@ -157,9 +157,23 @@ function durationFromAudio(blob) {
   });
 }
 
+/**
+ * 从相册选一张图片做封面：打开选择器（必须在点击的那一刻调用），
+ * 返回压缩好的封面；取消返回 null，图片无法读取时抛出 ImportError。
+ */
+export async function pickCoverImage(picking) {
+  const [file] = await picking;
+  if (!file) return null;
+  const cover = await makeThumbnail(file);
+  if (!cover) throw new ImportError('这张图片无法读取');
+  return cover;
+}
+
+export const IMAGE_ACCEPT = 'image/*';
+
 /** 把封面缩小到 300px 以内，转成 JPEG，节省存储空间 */
-async function makeThumbnail({ data, mime }) {
-  const url = URL.createObjectURL(new Blob([data], { type: mime }));
+async function makeThumbnail(imageBlob) {
+  const url = URL.createObjectURL(imageBlob);
   try {
     const img = new Image();
     img.src = url;
@@ -168,7 +182,10 @@ async function makeThumbnail({ data, mime }) {
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
     canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
-    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#FFFFFF'; // 透明的 PNG 转成 JPEG 时，透明部分是白色而不是黑色
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     return await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
   } catch {
     return null; // 图片损坏就不要封面了，不影响导入

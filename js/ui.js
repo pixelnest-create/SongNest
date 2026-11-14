@@ -61,6 +61,19 @@ export function coverHTML(id, { cover = null, coverSongId = id, small = false, s
 }
 
 /**
+ * 歌单封面：歌单自己设置了封面就用它，否则用第一首有封面的歌。
+ * songs 是歌单里的歌（按顺序）。
+ */
+export function playlistCoverHTML(playlist, songs, { size = '' } = {}) {
+  if (playlist.cover instanceof Blob) {
+    // 「playlist:」开头，和歌曲 id 区分开（封面网址缓存是共用的）
+    return coverHTML(playlist.id, { cover: playlist.cover, coverSongId: `playlist:${playlist.id}`, size });
+  }
+  const withCover = songs.find((s) => s.cover instanceof Blob);
+  return coverHTML(playlist.id, { cover: withCover?.cover, coverSongId: withCover?.id, size });
+}
+
+/**
  * 弹窗出现时的动画。要在 showModal() 之后「立刻」调用（同一段代码里，中间不要 await）。
  *
  * 为什么不用 CSS 动画：CSS 动画挂在 [open] 状态上时，iPhone 的 Safari 会先把弹窗在

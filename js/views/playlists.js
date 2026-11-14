@@ -1,6 +1,6 @@
 // 歌单列表页面：#/playlists
 import { icon } from '../icons.js';
-import { coverHTML, escapeHTML } from '../ui.js';
+import { escapeHTML, playlistCoverHTML } from '../ui.js';
 import { getAllPlaylists, getAllSongs } from '../db.js';
 import { createPlaylistFlow } from '../playlist-actions.js';
 
@@ -29,14 +29,12 @@ function listHTML(playlists, songsById) {
   return `
     <ul class="list">
       ${playlists.map((p) => {
-        // 歌单封面：用第一首有封面的歌
         const songs = p.songIds.map((id) => songsById.get(id)).filter(Boolean);
-        const withCover = songs.find((s) => s.cover);
         return `
           <li>
             <a class="row" href="#/playlist/${encodeURIComponent(p.id)}">
               <span class="row-main">
-                ${coverHTML(p.id, { cover: withCover?.cover, coverSongId: withCover?.id })}
+                ${playlistCoverHTML(p, songs)}
                 <span class="row-text">
                   <span class="row-title">${escapeHTML(p.name)}</span>
                   <span class="row-sub">${songs.length} 首</span>

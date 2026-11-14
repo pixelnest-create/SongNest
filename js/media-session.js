@@ -33,6 +33,10 @@ export function setupMediaSession() {
 
   // 告诉系统的信息有变化（换歌、编辑了歌名歌手、换了封面）时才更新
   let shownKey;
+  // 封面换成了另一张图（key 里只记了「有没有封面」）：下次一定更新
+  window.addEventListener('cover:change', (e) => {
+    if (shownKey?.startsWith(`${e.detail.songId}|`)) shownKey = null;
+  });
   window.addEventListener('player:change', async (e) => {
     const state = e.detail;
     const { song } = state;

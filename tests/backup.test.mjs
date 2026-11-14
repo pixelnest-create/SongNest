@@ -21,7 +21,10 @@ const sample = () => ({
       cover: null,
     },
   ],
-  playlists: [{ id: 'p1', name: '通勤', songIds: ['s2', 's1'], createdAt: 1, updatedAt: 2 }],
+  playlists: [
+    { id: 'p1', name: '通勤', songIds: ['s2', 's1'], createdAt: 1, updatedAt: 2 },
+    { id: 'p2', name: '有封面', songIds: ['s1'], createdAt: 3, updatedAt: 4, cover: new Blob([bytes(0xff, 0xd8, 5, 6)], { type: 'image/jpeg' }) },
+  ],
 });
 
 test('打包再解开：歌曲信息、音频、封面、歌单都不变', async () => {
@@ -39,7 +42,12 @@ test('打包再解开：歌曲信息、音频、封面、歌单都不变', async
   assert.equal(a.cover.type, 'image/jpeg');
   assert.deepEqual(await blobBytes(b.audio), [7, 8]);
   assert.equal(b.cover, null);
-  assert.deepEqual(restored.playlists, sample().playlists);
+  const [p1, p2] = restored.playlists;
+  const { cover: _, ...p2Info } = sample().playlists[1];
+  assert.deepEqual(p1, { ...sample().playlists[0], cover: null }); // 没有封面的歌单
+  assert.deepEqual({ ...p2, cover: undefined }, { ...p2Info, cover: undefined });
+  assert.deepEqual(await blobBytes(p2.cover), [0xff, 0xd8, 5, 6]);
+  assert.equal(p2.cover.type, 'image/jpeg');
   assert.ok(restored.createdAt > 0);
 });
 

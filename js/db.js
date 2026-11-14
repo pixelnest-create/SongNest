@@ -196,6 +196,11 @@ export function renamePlaylist(id, name) {
   return updatePlaylist(id, (p) => ({ ...p, name }));
 }
 
+/** 设置歌单自己的封面（图片 Blob）；传 null 恢复成「用第一首有封面的歌」 */
+export function setPlaylistCover(id, cover) {
+  return updatePlaylist(id, (p) => ({ ...p, cover }));
+}
+
 /** 把歌加到歌单末尾，已经在歌单里的会跳过。返回实际新加了几首 */
 export async function addSongsToPlaylist(id, songIds) {
   let added = 0;
@@ -272,8 +277,10 @@ export async function restoreFromBackup({ songs, playlists }, onProgress = () =>
         summary.playlistsMerged++;
       }
     } else {
+      // 封面和歌曲音频一样，先读成一份独立的 Blob 再存
+      const cover = p.cover instanceof Blob ? new Blob([await p.cover.arrayBuffer()], { type: p.cover.type }) : null;
       const tx = db.transaction('playlists', 'readwrite');
-      tx.objectStore('playlists').add({ ...p, songIds });
+      tx.objectStore('playlists').add({ ...p, songIds, cover });
       await finished(tx);
       summary.playlistsAdded++;
     }

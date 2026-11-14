@@ -3,7 +3,7 @@
 // 文件结构：
 //   [8 字节 "SONGNEST"] [4 字节 格式版本] [4 字节 目录长度]
 //   [目录：JSON 文本，记录每首歌的信息、歌单，以及每段数据在文件里的位置]
-//   [数据：歌曲 1 的音频][歌曲 1 的封面][歌曲 2 的音频]……
+//   [数据：歌曲 1 的音频][歌曲 1 的封面][歌曲 2 的音频]……[歌单的封面]……
 //
 // 目录在前、数据在后：恢复时先读目录，再按位置一首一首取出音频，
 // 不需要把整个文件（可能好几百 MB）一次读进内存。
@@ -38,7 +38,8 @@ export function buildBackup({ songs, playlists }) {
     app: 'SongNest',
     createdAt: Date.now(),
     songs: songs.map(({ audio, cover, ...info }) => ({ ...info, audio: place(audio), cover: place(cover) })),
-    playlists,
+    // 歌单可能有自己的封面（v5 起）。旧版本的歌单没有 cover，place 会得到 null
+    playlists: playlists.map(({ cover, ...info }) => ({ ...info, cover: place(cover) })),
   };
 
   const json = new TextEncoder().encode(JSON.stringify(catalog));
@@ -87,7 +88,7 @@ export async function parseBackup(file) {
   return {
     createdAt: catalog.createdAt,
     songs: (catalog.songs ?? []).map((s) => ({ ...s, audio: take(s.audio), cover: take(s.cover) })),
-    playlists: catalog.playlists ?? [],
+    playlists: (catalog.playlists ?? []).map((p) => ({ ...p, cover: take(p.cover) })),
   };
 }
 

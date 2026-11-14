@@ -1,8 +1,8 @@
-// 单首歌的「⋯」菜单：添加到歌单、编辑歌曲信息、替换音频文件、（在歌单里时）从歌单移除。
+// 单首歌的「⋯」菜单：添加到歌单、编辑歌曲信息、更换封面、替换音频文件、（在歌单里时）从歌单移除。
 // 歌曲库和歌单详情页共用。
 import { deleteSong, getAllPlaylists, removeSongFromPlaylist, replaceSongAudio, updateSong } from './db.js';
 import { actionSheet, confirmDialog, formDialog } from './dialogs.js';
-import { pickFiles, readAudioFile, reasonFor } from './importer.js';
+import { IMAGE_ACCEPT, pickCoverImage, pickFiles, readAudioFile, reasonFor } from './importer.js';
 import { refreshSong, removeSong } from './player.js';
 import { addToPlaylistFlow } from './playlist-actions.js';
 import { toast } from './ui.js';
@@ -12,18 +12,27 @@ import { toast } from './ui.js';
  * @param {{ playlist?: object }} options 在歌单里打开时传入这个歌单，菜单里会多一项「从歌单中移除」
  */
 export async function songMenu(song, { playlist = null } = {}) {
-  let picking = null; // 「替换音频文件」：点击的瞬间就打开文件选择器（iOS 的要求）
+  let picking = null; // 「替换音频文件」「更换封面」：点击的瞬间就打开文件选择器（iOS 的要求）
 
   const actions = [
     { value: 'add', label: '添加到歌单', icon: 'playlist-add' },
     { value: 'edit', label: '编辑歌曲信息', icon: 'edit' },
+    {
+      value: 'cover',
+      label: '更换封面',
+      icon: 'photo',
+      onTap: () => { picking = pickFiles({ multiple: false, accept: IMAGE_ACCEPT }); },
+    },
+  ];
+  if (song.cover) actions.push({ value: 'remove-cover', label: '移除封面', icon: 'x' });
+  actions.push(
     {
       value: 'replace',
       label: '替换音频文件',
       icon: 'replace',
       onTap: () => { picking = pickFiles({ multiple: false }); },
     },
-  ];
+  );
   if (playlist) actions.push({ value: 'remove', label: '从歌单中移除', icon: 'remove', danger: true });
   actions.push({ value: 'delete', label: '从歌曲库删除', icon: 'trash', danger: true });
 
@@ -35,6 +44,13 @@ export async function songMenu(song, { playlist = null } = {}) {
       break;
     case 'edit':
       await editSongFlow(song);
+      break;
+    case 'cover':
+      await changeCoverFlow(song, picking);
+      break;
+    case 'remove-cover':
+      await saveCover(song, null);
+      toast('已移除封面');
       break;
     case 'replace':
       await replaceAudioFlow(song, await picking);
@@ -86,6 +102,29 @@ async function editSongFlow(song) {
   refreshSong(updated);
   window.dispatchEvent(new Event('library:change'));
   toast('已保存');
+}
+
+/** 从相册选一张图片做这首歌的封面（只改应用里保存的封面，不会改动原来的音乐文件） */
+async function changeCoverFlow(song, picking) {
+  let cover;
+  try {
+    cover = await pickCoverImage(picking);
+  } catch (err) {
+    toast(`更换失败：${reasonFor(err)}`, { duration: 4000 });
+    return;
+  }
+  if (!cover) return;
+  await saveCover(song, cover);
+  toast('已更换封面');
+}
+
+/** 保存新封面（null = 移除），并通知各处（列表、播放页、锁屏）刷新 */
+async function saveCover(song, cover) {
+  const updated = await updateSong(song.id, { cover });
+  if (!updated) return;
+  window.dispatchEvent(new CustomEvent('cover:change', { detail: { songId: song.id } }));
+  refreshSong(updated);
+  window.dispatchEvent(new Event('library:change'));
 }
 
 /**
