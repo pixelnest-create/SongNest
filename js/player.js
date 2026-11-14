@@ -98,7 +98,10 @@ export function play() {
   // 暂停了很久：iPhone 可能已经在后台悄悄释放了这首歌，<audio> 只剩个空壳
   // （表现为：声音从头开始，进度条却卡在中间不动、拖动也没用）。
   // 所以重新装一次这首歌，再跳回暂停时的位置
-  if (pausedAt && Date.now() - pausedAt > STALE_PAUSE_MS && objectURL && audio.src === objectURL) {
+  // 只在 App 开在屏幕上时这样做：锁屏时 iPhone 不允许重新装歌，装了反而没声音，
+  // 要等打开 App 才会响（v4 的问题）
+  if (pausedAt && Date.now() - pausedAt > STALE_PAUSE_MS && objectURL && audio.src === objectURL
+      && document.visibilityState === 'visible') {
     reloadAt(pendingSeek ?? audio.currentTime);
     return;
   }
@@ -537,12 +540,15 @@ audio.addEventListener('pause', () => {
 audio.addEventListener('play', () => { pausedAt = 0; });
 
 // 看门狗：明明在播放，进度却 3 秒都没动，说明 <audio> 卡死了（iPhone 后台久了偶尔会这样）。
-// 重新装一次这首歌，从卡住的位置接着放。30 秒内最多补救一次，避免反复重来
+// 重新装一次这首歌，从卡住的位置接着放。30 秒内最多补救一次，避免反复重来。
+// 只在 App 开在屏幕上时检查：锁屏时按「继续」，iPhone 恢复出声可能要好几秒，
+// 这时重新装歌会被系统拦下，反而彻底没声音
 let lastTime = -1;
 let lastMoveAt = 0;
 let lastRescueAt = 0;
 setInterval(() => {
-  if (audio.paused || loading || audio.seeking || !objectURL || audio.src !== objectURL) {
+  if (audio.paused || loading || audio.seeking || !objectURL || audio.src !== objectURL
+      || document.visibilityState !== 'visible') {
     lastTime = -1;
     return;
   }
