@@ -56,24 +56,6 @@
   }
 }
 
-/*
- * 主题色：在「更多」页面选择，由 js/theme.js 设置 <html data-theme="…">。
- * 只换强调色（按钮、高亮文字），背景、卡片保持奶油色。
- * 没设置时就是上面的暖橙色。每种颜色的文字对比度都不低于暖橙色。
- */
-:root[data-theme="red"]    { --accent: #E8786A; --on-accent: #2E0F0A; --accent-text: #B23F2E; }
-:root[data-theme="pink"]   { --accent: #EC8FAE; --on-accent: #33111D; --accent-text: #B03C68; }
-:root[data-theme="purple"] { --accent: #AE92DE; --on-accent: #1E1233; --accent-text: #7650B0; }
-:root[data-theme="blue"]   { --accent: #74A8DE; --on-accent: #0D1E33; --accent-text: #2E69A6; }
-:root[data-theme="green"]  { --accent: #82BB7E; --on-accent: #10260F; --accent-text: #3D7839; }
-@media (prefers-color-scheme: dark) {
-  :root[data-theme="red"]    { --accent-text: #F2938A; }
-  :root[data-theme="pink"]   { --accent-text: #F4A6C0; }
-  :root[data-theme="purple"] { --accent-text: #C4ACF0; }
-  :root[data-theme="blue"]   { --accent-text: #8FBDEF; }
-  :root[data-theme="green"]  { --accent-text: #9DD099; }
-}
-
 /* ---------- 2. 基础 ---------- */
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -196,6 +178,17 @@ button {
 .cover[data-tone="3"] { background: var(--cover-3); }
 .cover.sm { width: 36px; height: 36px; border-radius: var(--radius-cover-sm); }
 .cover.sm .icon { width: 16px; height: 16px; }
+/*
+ * 歌曲自己选的颜色（「⋯ → 设置颜色」，见 js/song-colors.js）：
+ * --cover-h（色相）、--cover-s（饱和度）由代码给出，亮度在这里固定，
+ * 和上面三种默认色块一样浅（深色模式下一样深）。弹窗里的色块用同一个公式。
+ */
+.cover[data-color],
+.swatch-dot[data-color] { background: hsl(var(--cover-h) calc(min(80, var(--cover-s) * 1.5) * 1%) 84%); }
+@media (prefers-color-scheme: dark) {
+  .cover[data-color],
+  .swatch-dot[data-color] { background: hsl(var(--cover-h) calc(var(--cover-s) * 0.6%) 27%); }
+}
 .cover.md { width: 88px; height: 88px; border-radius: var(--radius-card); }
 .cover.md .icon { width: 36px; height: 36px; }
 
@@ -286,32 +279,33 @@ button {
 .card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .btn:disabled { opacity: 0.5; cursor: default; transform: none; }
 
-/* 主题色色块 */
-.swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 14px; }
+/* 「设置颜色」弹窗里的色块 */
+.swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 4px 0 8px; }
 .swatch {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
   min-width: 0;
-  padding: 4px 0;
+  padding: 6px 0;
   border-radius: var(--radius-control);
 }
 .swatch-dot {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  color: rgb(30 20 10 / 0.75); /* 深色对勾：在每种浅色色块上都看得清 */
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-cover);
+  color: var(--text);
   transition: transform 120ms ease-out;
 }
-.swatch-dot .icon { width: 20px; height: 20px; stroke-width: 2.5; }
+.swatch-dot .icon { width: 22px; height: 22px; stroke-width: 2.5; }
 .swatch:active .swatch-dot { transform: scale(0.92); }
-.swatch[aria-checked="true"] .swatch-dot { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--text-2); }
-.swatch-label { font-size: 11px; color: var(--text-2); white-space: nowrap; }
+.swatch[aria-checked="true"] .swatch-dot { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text-2); }
+.swatch-label { font-size: 12px; color: var(--text-2); white-space: nowrap; }
 .swatch[aria-checked="true"] .swatch-label { color: var(--text); font-weight: 600; }
+.sheet-item .sheet-check { color: var(--accent-text); }
 
 /* ---------- 7. 空状态 ---------- */
 .empty {

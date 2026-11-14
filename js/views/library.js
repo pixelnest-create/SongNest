@@ -1,6 +1,6 @@
 // 歌曲库页面：#/library
 import { icon } from '../icons.js';
-import { coverHTML, escapeHTML, formatDuration } from '../ui.js';
+import { escapeHTML, formatDuration, songCoverHTML } from '../ui.js';
 import { songMenu } from '../song-actions.js';
 import { getAllSongs } from '../db.js';
 import { pickAndImport } from '../importer.js';
@@ -108,7 +108,7 @@ function listHTML(songs, total) {
       ${songs.map((song) => `
         <li class="row">
           <button class="row-main" data-action="play" data-id="${escapeHTML(song.id)}">
-            ${coverHTML(song.id, { cover: song.cover })}
+            ${songCoverHTML(song)}
             <span class="row-text">
               <span class="row-title">${escapeHTML(song.title)}</span>
               <span class="row-sub">${escapeHTML(song.artist ?? '未知歌手')}</span>

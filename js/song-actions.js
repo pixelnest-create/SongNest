@@ -1,7 +1,8 @@
-// 单首歌的「⋯」菜单：添加到歌单、编辑歌曲信息、更换封面、替换音频文件、（在歌单里时）从歌单移除。
+// 单首歌的「⋯」菜单：添加到歌单、编辑歌曲信息、更换封面、设置颜色、替换音频文件、（在歌单里时）从歌单移除。
 // 歌曲库和歌单详情页共用。
 import { deleteSong, getAllPlaylists, removeSongFromPlaylist, replaceSongAudio, updateSong } from './db.js';
-import { actionSheet, confirmDialog, formDialog } from './dialogs.js';
+import { actionSheet, colorDialog, confirmDialog, formDialog } from './dialogs.js';
+import { songColor } from './song-colors.js';
 import { IMAGE_ACCEPT, pickCoverImage, pickFiles, readAudioFile, reasonFor } from './importer.js';
 import { refreshSong, removeSong } from './player.js';
 import { addToPlaylistFlow } from './playlist-actions.js';
@@ -23,6 +24,7 @@ export async function songMenu(song, { playlist = null } = {}) {
       icon: 'photo',
       onTap: () => { picking = pickFiles({ multiple: false, accept: IMAGE_ACCEPT }); },
     },
+    { value: 'color', label: '设置颜色', icon: 'palette', meta: songColor(song)?.label ?? '自动' },
   ];
   if (song.cover) actions.push({ value: 'remove-cover', label: '移除封面', icon: 'x' });
   actions.push(
@@ -52,6 +54,15 @@ export async function songMenu(song, { playlist = null } = {}) {
       await saveCover(song, null);
       toast('已移除封面');
       break;
+    case 'color': {
+      const picked = await colorDialog({ song });
+      if (!picked) break;
+      const color = picked === 'auto' ? null : picked;
+      if (color === (song.color ?? null)) break;
+      await saveLook(song, { color });
+      toast('已设置颜色');
+      break;
+    }
     case 'replace':
       await replaceAudioFlow(song, await picking);
       break;
@@ -118,9 +129,14 @@ async function changeCoverFlow(song, picking) {
   toast('已更换封面');
 }
 
-/** 保存新封面（null = 移除），并通知各处（列表、播放页、锁屏）刷新 */
-async function saveCover(song, cover) {
-  const updated = await updateSong(song.id, { cover });
+/** 保存新封面（null = 移除） */
+function saveCover(song, cover) {
+  return saveLook(song, { cover });
+}
+
+/** 保存封面或颜色，并通知各处（列表、播放条、播放页、锁屏）刷新 */
+async function saveLook(song, patch) {
+  const updated = await updateSong(song.id, patch);
   if (!updated) return;
   window.dispatchEvent(new CustomEvent('cover:change', { detail: { songId: song.id } }));
   refreshSong(updated);

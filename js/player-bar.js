@@ -1,6 +1,6 @@
 // 底部播放条：显示当前歌曲、播放/暂停、下一首、进度条。点歌名区域打开全屏播放页。
 import { icon } from './icons.js';
-import { coverHTML } from './ui.js';
+import { coverHTML, songCoverHTML } from './ui.js';
 import { getState, next, toggle } from './player.js';
 import { mountProgress, progressHTML } from './progress.js';
 import { openNowPlaying } from './now-playing.js';
@@ -32,10 +32,10 @@ export function mountPlayerBar(bar) {
     bar.classList.toggle('is-idle', !song);
 
     // 没有歌时是 'idle'，和初始的 undefined 不同，保证第一次一定会画
-    const coverKey = song ? `${song.id}|${Boolean(song.cover)}` : 'idle';
+    const coverKey = song ? `${song.id}|${Boolean(song.cover)}|${song.color}` : 'idle';
     if (coverKey !== shownCover) {
       shownCover = coverKey;
-      $('cover').innerHTML = coverHTML(song?.id ?? 'idle', { cover: song?.cover, small: true });
+      $('cover').innerHTML = song ? songCoverHTML(song, { small: true }) : coverHTML('idle', { small: true });
     }
     // 文字每次都更新：歌名、歌手可能被编辑过
     $('title').textContent = song ? song.title : '未在播放';
@@ -53,6 +53,8 @@ export function mountPlayerBar(bar) {
   nextBtn.addEventListener('click', () => next());
 
   mountProgress(bar);
+  // 封面换成了另一张图（key 里只记了「有没有封面」）：下次一定重画
+  window.addEventListener('cover:change', () => { shownCover = null; });
   window.addEventListener('player:change', (e) => render(e.detail));
   render(getState());
 }

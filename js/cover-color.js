@@ -2,6 +2,7 @@
 // 只取色相（H）和饱和度（S），亮度由 CSS 根据浅色/深色模式决定，
 // 这样不管封面多暗多亮，背景上的文字都看得清。
 import { toneFor } from './ui.js';
+import { songColor } from './song-colors.js';
 
 // 没有封面时，用占位色块对应的颜色（和 --cover-1/2/3 同一色系）
 const TONE_HS = {
@@ -14,8 +15,10 @@ const MAX_SATURATION = 50; // 太鲜艳的颜色做背景会刺眼，限制一�
 const cache = new Map(); // 歌曲 id → { h, s }，每首歌只算一次
 window.addEventListener('cover:change', (e) => cache.delete(e.detail.songId)); // 封面换了，重新取色
 
-/** 返回 { h: 0~360, s: 0~50 } */
+/** 返回 { h: 0~360, s: 0~50 }。歌曲自己选了颜色（「设置颜色」）时直接用它 */
 export async function coverHue(song) {
+  const picked = songColor(song);
+  if (picked) return { h: picked.h, s: picked.s };
   if (cache.has(song.id)) return cache.get(song.id);
   let hs = TONE_HS[toneFor(song.id)];
   if (song.cover instanceof Blob) {

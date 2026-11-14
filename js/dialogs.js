@@ -1,8 +1,9 @@
-// 弹窗组件：底部菜单、输入框、确认框、选歌列表。
+// 弹窗组件：底部菜单、输入框、确认框、选颜色、选歌列表。
 // 都基于浏览器自带的 <dialog> 元素，每个函数返回一个 Promise，
 // 所以页面里可以这样写：const name = await promptDialog({ ... });
 import { icon } from './icons.js';
-import { animateIn, coverHTML, escapeHTML, formatDuration } from './ui.js';
+import { animateIn, escapeHTML, formatDuration, songCoverHTML } from './ui.js';
+import { SONG_COLORS, colorStyle, songColor } from './song-colors.js';
 
 /**
  * 打开一个 <dialog>，关闭时 resolve(returnValue)。
@@ -137,6 +138,35 @@ export async function confirmDialog({ title, message = '', confirmLabel = '确�
 }
 
 /**
+ * 给一首歌选颜色。返回选中的颜色 id；选「自动」返回 'auto'；取消返回 null。
+ */
+export async function colorDialog({ song }) {
+  const current = songColor(song)?.id ?? 'auto';
+  const value = await open('sheet', `
+    <form method="dialog" class="sheet-panel">
+      <p class="sheet-title">设置颜色<span>${escapeHTML(song.title)}</span></p>
+      <div class="sheet-scroll">
+        <button class="sheet-item" value="auto">
+          ${icon('photo')}
+          <span class="sheet-label">自动（有封面时跟随封面）</span>
+          ${current === 'auto' ? `<span class="sheet-check">${icon('check')}</span>` : ''}
+        </button>
+        <div class="swatches" role="radiogroup" aria-label="颜色">
+          ${SONG_COLORS.map((c) => `
+            <button class="swatch" role="radio" aria-checked="${c.id === current}" value="${c.id}">
+              <span class="swatch-dot" data-color style="${colorStyle(c)}">${c.id === current ? icon('check') : ''}</span>
+              <span class="swatch-label">${c.label}</span>
+            </button>
+          `).join('')}
+        </div>
+      </div>
+      <button class="sheet-item sheet-cancel" value="">取消</button>
+    </form>
+  `);
+  return value || null;
+}
+
+/**
  * 从歌曲库里多选歌曲。返回选中歌曲的 id 数组（保持歌曲库里的顺序），取消返回空数组。
  */
 export async function pickSongs({ title, songs }) {
@@ -152,7 +182,7 @@ export async function pickSongs({ title, songs }) {
         ${songs.map((s) => `
           <label class="row check-row">
             <input type="checkbox" value="${escapeHTML(s.id)}">
-            ${coverHTML(s.id, { cover: s.cover })}
+            ${songCoverHTML(s)}
             <span class="row-text">
               <span class="row-title">${escapeHTML(s.title)}</span>
               <span class="row-sub">${escapeHTML(s.artist ?? '未知歌手')}</span>

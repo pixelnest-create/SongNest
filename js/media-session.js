@@ -3,6 +3,7 @@
 // iPhone 锁屏、控制中心，电脑浏览器的媒体控制面板都会用到这些信息。
 import { getState, next, pause, play, prev, seek } from './player.js';
 import { toneFor } from './ui.js';
+import { placeholderFill, songColor } from './song-colors.js';
 
 const supported = 'mediaSession' in navigator;
 
@@ -40,7 +41,7 @@ export function setupMediaSession() {
   window.addEventListener('player:change', async (e) => {
     const state = e.detail;
     const { song } = state;
-    const key = song && [song.id, song.title, song.artist, song.album, Boolean(song.cover)].join('|');
+    const key = song && [song.id, song.title, song.artist, song.album, Boolean(song.cover), song.color].join('|');
     if (song && key !== shownKey) {
       shownKey = key;
       await updateMetadata(song);
@@ -56,7 +57,9 @@ export function setupMediaSession() {
 }
 
 async function updateMetadata(song) {
-  const src = song.cover instanceof Blob ? await toDataURL(song.id, song.cover) : placeholderArtwork(toneFor(song.id));
+  const picked = songColor(song);
+  const fill = picked ? placeholderFill(picked) : PLACEHOLDER_COLORS[toneFor(song.id)];
+  const src = song.cover instanceof Blob ? await toDataURL(song.id, song.cover) : placeholderArtwork(fill);
   if (getState().song?.id !== song.id) return; // 准备封面期间已经换歌了
   navigator.mediaSession.metadata = new MediaMetadata({
     title: song.title,
@@ -106,14 +109,14 @@ function toDataURL(songId, blob) {
 const PLACEHOLDER_COLORS = { 1: '#F6D9B8', 2: '#E6D3C6', 3: '#D8E3CF' };
 const placeholderCache = new Map();
 
-/** 没有封面的歌：画一张「暖色底 + 音符」的图，和应用里的占位封面一致 */
-function placeholderArtwork(tone) {
-  if (!placeholderCache.has(tone)) {
+/** 没有封面的歌：画一张「色块 + 音符」的图，和应用里的占位封面一致。fill 是底色 */
+function placeholderArtwork(fill) {
+  if (!placeholderCache.has(fill)) {
     const size = 300;
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = size;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = PLACEHOLDER_COLORS[tone];
+    ctx.fillStyle = fill;
     ctx.fillRect(0, 0, size, size);
     // 音符图标（和 icons.js 里的 music 一样），放大到 120px 画在中间
     ctx.translate(90, 90);
@@ -125,7 +128,7 @@ function placeholderArtwork(tone) {
     for (const d of ['M3 17a3 3 0 1 0 6 0a3 3 0 0 0 -6 0', 'M13 17a3 3 0 1 0 6 0a3 3 0 0 0 -6 0', 'M9 17v-13h10v13', 'M9 8h10']) {
       ctx.stroke(new Path2D(d));
     }
-    placeholderCache.set(tone, canvas.toDataURL('image/jpeg', 0.9));
+    placeholderCache.set(fill, canvas.toDataURL('image/jpeg', 0.9));
   }
-  return placeholderCache.get(tone);
+  return placeholderCache.get(fill);
 }

@@ -1,6 +1,6 @@
 // 歌单详情页面：#/playlist/<id>
 import { icon } from '../icons.js';
-import { coverHTML, escapeHTML, formatDuration, playlistCoverHTML, toast } from '../ui.js';
+import { escapeHTML, formatDuration, playlistCoverHTML, songCoverHTML, toast } from '../ui.js';
 import {
   addSongsToPlaylist, deletePlaylist, getAllSongs, getPlaylist, getSongsByIds,
   moveSongInPlaylist, renamePlaylist, setPlaylistCover,
@@ -207,7 +207,7 @@ function listHTML(songs, editing) {
           ` : `
             <button class="row-main" data-action="play" data-index="${i}" data-id="${escapeHTML(song.id)}">
               <span class="row-index">${i + 1}</span>
-              ${coverHTML(song.id, { cover: song.cover })}
+              ${songCoverHTML(song)}
               ${songTextHTML(song)}
               <span class="row-meta">${formatDuration(song.duration)}</span>
             </button>

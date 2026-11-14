@@ -1,5 +1,6 @@
 // 各个页面共用的小工具函数
 import { icon } from './icons.js';
+import { colorStyle, songColor } from './song-colors.js';
 
 /** 把用户输入的文字转义，防止歌名里的 < > 被当成 HTML 执行 */
 export function escapeHTML(text) {
@@ -49,15 +50,23 @@ window.addEventListener('cover:change', (e) => {
  * 封面：有封面图就显示图片，没有就显示带音符的色块。
  * id 决定占位色块的颜色；coverSongId 是封面图来自哪首歌（默认就是 id）。
  * 歌单用第一首有封面的歌做封面，所以两者会不同。
+ * color 是歌曲自己选的颜色 id（见 song-colors.js），选了就用它做色块的颜色。
  */
-export function coverHTML(id, { cover = null, coverSongId = id, small = false, size = small ? 'sm' : '' } = {}) {
+export function coverHTML(id, { cover = null, coverSongId = id, color = null, small = false, size = small ? 'sm' : '' } = {}) {
   const cls = size ? `cover ${size}` : 'cover';
   let inner = icon('music');
   if (cover instanceof Blob) {
     if (!coverURLs.has(coverSongId)) coverURLs.set(coverSongId, URL.createObjectURL(cover));
     inner = `<img src="${coverURLs.get(coverSongId)}" alt="">`;
   }
-  return `<span class="${cls}" data-tone="${toneFor(id)}">${inner}</span>`;
+  const picked = songColor({ color });
+  const colorAttrs = picked ? ` data-color style="${colorStyle(picked)}"` : '';
+  return `<span class="${cls}" data-tone="${toneFor(id)}"${colorAttrs}>${inner}</span>`;
+}
+
+/** 一首歌的封面（带上它自己选的颜色） */
+export function songCoverHTML(song, options = {}) {
+  return coverHTML(song.id, { cover: song.cover, color: song.color, ...options });
 }
 
 /**

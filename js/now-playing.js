@@ -1,8 +1,8 @@
 // 全屏播放页：大封面、歌名、进度条、播放模式、上一首、播放/暂停、下一首。
 // 点底部播放条打开，点左上角的 ⌄ 或按 Esc 关闭。
-// 背景颜色跟随封面的主色调变化（见 cover-color.js）。
+// 背景颜色：歌曲选了颜色就用它，否则跟随封面的主色调（见 cover-color.js）。
 import { icon } from './icons.js';
-import { animateIn, coverHTML, toast } from './ui.js';
+import { animateIn, songCoverHTML, toast } from './ui.js';
 import { MODE_LABELS, cycleMode, getState, next, prev, toggle } from './player.js';
 import { mountProgress, progressHTML } from './progress.js';
 import { coverHue } from './cover-color.js';
@@ -62,10 +62,10 @@ function build() {
     }
     shownSongId = song.id;
     // 封面和背景色只在封面变了时重画；文字每次都更新（歌名、歌手可能被编辑过）
-    const coverKey = `${song.id}|${Boolean(song.cover)}`;
+    const coverKey = `${song.id}|${Boolean(song.cover)}|${song.color}`;
     if (coverKey !== shownCover) {
       shownCover = coverKey;
-      $('cover').innerHTML = coverHTML(song.id, { cover: song.cover, size: 'lg' });
+      $('cover').innerHTML = songCoverHTML(song, { size: 'lg' });
       paintBackground(song);
     }
     $('title').textContent = song.title;

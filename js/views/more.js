@@ -5,8 +5,6 @@ import { getAllPlaylists, getAllSongs, getEverythingForBackup, restoreFromBackup
 import { BackupError, backupFileName, buildBackup, parseBackup } from '../backup.js';
 import { confirmDialog } from '../dialogs.js';
 import { pickFiles } from '../importer.js';
-import { THEMES, getTheme, setTheme } from '../theme.js';
-
 // 生成好、等待保存的备份文件。
 // 为什么要分两步（先「导出备份」，再「保存备份文件」）：iPhone 只允许在用户点击的那一刻
 // 打开「分享 / 存储到文件」，而生成备份需要先读数据库，等读完那一刻已经过去了。
@@ -21,9 +19,7 @@ export async function renderMore(container) {
     navigator.storage?.estimate?.().catch(() => null) ?? null,
   ]);
   const songBytes = songs.reduce((sum, s) => sum + (s.fileSize || 0) + (s.cover?.size || 0), 0)
-    + playlists.reduce((sum, p) => sum + (p.cover?.size || 0), 0);
-  const theme = getTheme();
-  const free = estimate?.quota && estimate?.usage != null ? estimate.quota - estimate.usage : null;
+    + playlists.reduce((sum, p) => sum + (p.cover?.size || 0), 0);  const free = estimate?.quota && estimate?.usage != null ? estimate.quota - estimate.usage : null;
 
   container.innerHTML = `
     <header class="page-header">
@@ -34,19 +30,6 @@ export async function renderMore(container) {
       <h2 class="card-title">存储空间</h2>
       <p class="card-stat">${formatBytes(songBytes)}</p>
       <p class="card-text">${songs.length} 首歌、${playlists.length} 个歌单${free != null ? ` · 这个应用还可以使用约 ${formatBytes(free)}` : ''}</p>
-    </section>
-
-    <section class="card">
-      <h2 class="card-title">主题色</h2>
-      <p class="card-text">按钮和高亮文字的颜色。</p>
-      <div class="swatches" role="radiogroup" aria-label="主题色">
-        ${THEMES.map((t) => `
-          <button class="swatch" role="radio" aria-checked="${t.id === theme}" data-action="theme" data-theme="${t.id}">
-            <span class="swatch-dot" style="background:${t.swatch}">${t.id === theme ? icon('check') : ''}</span>
-            <span class="swatch-label">${t.label}</span>
-          </button>
-        `).join('')}
-      </div>
     </section>
 
     <section class="card">
@@ -79,10 +62,6 @@ export async function renderMore(container) {
       case 'export': await exportBackup(target); break;
       case 'save-backup': saveBackup(); break;
       case 'restore': await restoreBackup(pickFiles({ multiple: false, accept: '' })); break;
-      case 'theme':
-        setTheme(target.dataset.theme);
-        window.dispatchEvent(new Event('library:change')); // 重新渲染本页，勾选新颜色
-        break;
     }
   };
 }
